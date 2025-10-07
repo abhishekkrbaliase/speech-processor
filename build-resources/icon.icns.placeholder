@@ -1,0 +1,10 @@
+This is a placeholder for icon.icns
+Please replace with a proper macOS icon file.
+You can use online tools to convert PNG to ICNS:
+- https://cloudconvert.com/png-to-icns
+- https://iconverticons.com/online/
+
+Or use iconutil on macOS:
+1. Create icon.iconset directory
+2. Add PNG files: icon_16x16.png, icon_32x32.png, etc.
+3. Run: iconutil -c icns icon.iconset

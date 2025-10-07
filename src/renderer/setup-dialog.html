@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Speech-to-Text Setup</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .setup-container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 600px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .setup-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            border-left: 4px solid #4285f4;
+        }
+        
+        .step-number {
+            background: #4285f4;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .api-key-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .api-key-input:focus {
+            outline: none;
+            border-color: #4285f4;
+        }
+        
+        .button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background 0.2s;
+        }
+        
+        .button:hover {
+            background: #3367d6;
+        }
+        
+        .button.secondary {
+            background: #6c757d;
+        }
+        
+        .button.secondary:hover {
+            background: #545b62;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .code {
+            background: #f1f3f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .link {
+            color: #4285f4;
+            text-decoration: none;
+        }
+        
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-icon">🎤</div>
+        <h1>Google Speech-to-Text Setup</h1>
+        <p class="subtitle">Configure your Google Cloud credentials to enable speech recognition</p>
+        
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>Create Service Account</strong>
+            <p>Go to <a href="https://console.cloud.google.com/apis/credentials" class="link" target="_blank">Google Cloud Console → Credentials</a></p>
+            <p>Click <span class="code">+ CREATE CREDENTIALS</span> → <span class="code">Service account</span></p>
+            <p>Add role: <span class="code">Cloud Speech Client</span></p>
+        </div>
+        
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>Download JSON Key</strong>
+            <p>Click on service account → <span class="code">Keys</span> tab → <span class="code">ADD KEY</span> → <span class="code">Create new key</span> → <span class="code">JSON</span></p>
+        </div>
+        
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>Upload Credentials File</strong>
+            <input type="file" id="credentialsFile" accept=".json" style="margin: 10px 0; padding: 10px; border: 2px dashed #4285f4; border-radius: 6px; width: 100%; cursor: pointer;">
+            <p style="font-size: 14px; color: #666;">Select the downloaded JSON credentials file</p>
+        </div>
+        
+        <div class="step">
+            <span class="step-number">4</span>
+            <strong>Save Configuration</strong>
+            <p>Your service account credentials will be saved securely in the application.</p>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div style="margin-top: 30px;">
+            <button class="button" onclick="saveCredentials()">💾 Save Credentials</button>
+            <button class="button secondary" onclick="openGoogleConsole()">🌐 Open Google Console</button>
+            <button class="button secondary" onclick="skipSetup()">⏭️ Skip for Now</button>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #666;">
+            <p><strong>💡 Alternative:</strong> You can also set the environment variable <span class="code">GOOGLE_APPLICATION_CREDENTIALS</span></p>
+            <p><strong>🔒 Security:</strong> Your credentials are stored locally and never shared</p>
+            <p><strong>✅ More Secure:</strong> Service accounts are more secure than API keys</p>
+        </div>
+    </div>
+
+    <script>
+        async function saveCredentials() {
+            const fileInput = document.getElementById('credentialsFile');
+            const statusDiv = document.getElementById('status');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                statusDiv.innerHTML = '<div class="error">❌ Please select a credentials JSON file</div>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            
+            if (!file.name.endsWith('.json')) {
+                statusDiv.innerHTML = '<div class="error">❌ Please select a JSON file</div>';
+                return;
+            }
+            
+            try {
+                // Read the file content
+                const fileContent = await file.text();
+                const credentials = JSON.parse(fileContent);
+                
+                // Validate it's a service account file
+                if (!credentials.type || credentials.type !== 'service_account') {
+                    statusDiv.innerHTML = '<div class="error">❌ Invalid service account file. Please download the correct JSON key.</div>';
+                    return;
+                }
+                
+                statusDiv.innerHTML = '<div class="success">📄 Credentials file loaded. Saving...</div>';
+                
+                // Save the credentials via IPC
+                const result = await window.electronAPI.saveServiceAccount(fileContent);
+                
+                if (result.success) {
+                    statusDiv.innerHTML = '<div class="success">✅ Credentials saved successfully! Initializing speech recognition...</div>';
+                    
+                    // Try to initialize the speech service
+                    setTimeout(async () => {
+                        try {
+                            const initResult = await window.electronAPI.initializeAI();
+                            if (initResult.success) {
+                                statusDiv.innerHTML = '<div class="success">🎉 Speech recognition is ready! Closing setup...</div>';
+                                setTimeout(() => {
+                                    window.close();
+                                }, 2000);
+                            } else {
+                                statusDiv.innerHTML = '<div class="error">❌ Failed to initialize: ' + initResult.error + '</div>';
+                            }
+                        } catch (error) {
+                            statusDiv.innerHTML = '<div class="error">❌ Initialization error: ' + error.message + '</div>';
+                        }
+                    }, 1000);
+                } else {
+                    statusDiv.innerHTML = '<div class="error">❌ Failed to save credentials: ' + result.error + '</div>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error">❌ Error reading file: ' + error.message + '</div>';
+            }
+        }
+        
+        function openGoogleConsole() {
+            window.electronAPI.openExternal('https://console.cloud.google.com/apis/credentials');
+        }
+        
+        function skipSetup() {
+            window.close();
+        }
+        
+        // Handle file selection
+        document.getElementById('credentialsFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('status').innerHTML = '<div class="info">📄 File selected: ' + file.name + '</div>';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSP temporarily disabled for debugging -->
+    <title>Speech Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            color: white;
+        }
+
+        .drag-handle {
+            height: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: move;
+            -webkit-app-region: drag;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .patient-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            -webkit-app-region: no-drag;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .overlay-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 12px;
+        }
+
+        .question-line {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            border-left: 3px solid #4285f4;
+            min-height: 45px;
+        }
+
+        .question-text {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .answer-line {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            border-left: 3px solid #34a853;
+            min-height: 45px;
+        }
+
+        .status-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+
+        .response-display {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            min-height: 20px;
+        }
+
+        .controls-line {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px;
+            border-left: 3px solid #ff9800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .control-button {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-app-region: no-drag;
+            min-width: 70px;
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .control-button.primary {
+            background: rgba(33, 150, 243, 0.4);
+            border-color: rgba(33, 150, 243, 0.6);
+        }
+
+        .control-button.danger {
+            background: rgba(244, 67, 54, 0.4);
+            border-color: rgba(244, 67, 54, 0.6);
+        }
+
+        .control-button.test {
+            background: rgba(76, 175, 80, 0.4);
+            border-color: rgba(76, 175, 80, 0.6);
+        }
+
+        .listening {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Drag handle with patient info -->
+    <div class="drag-handle">
+        <div class="patient-header">
+            <span id="patient-mrn">MRN: --</span>
+            <span id="patient-name">No patient loaded</span>
+            <span id="progress-text">0/0</span>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="overlay-content">
+        <!-- Question -->
+        <div class="question-line">
+            <div id="question-text" class="question-text">Load questions to begin...</div>
+        </div>
+
+        <!-- Answer Recognition -->
+        <div class="answer-line">
+            <div id="status-text" class="status-text">Ready</div>
+            <div id="response-display" class="response-display">Speak your answer...</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-line">
+            <button class="control-button danger" id="reset-btn">🔄 Reset</button>
+            <button class="control-button primary" id="next-btn">▶️ Next</button>
+            <button class="control-button" id="pause-btn">⏸️ Pause</button>
+            <button class="control-button test" id="test-btn">🧪 Test</button>
+        </div>
+    </div>
+
+    <!-- Inline JavaScript for immediate execution -->
+    <script>
+        // Immediate logging to verify script execution
+        console.log('🚀 OVERLAY HTML: Script starting...');
+        console.log('📍 Timestamp:', new Date().toISOString());
+        console.log('🔍 Document state:', document.readyState);
+        console.log('🌐 Window object:', typeof window);
+        
+        // Test basic functionality
+        try {
+            console.log('✅ OVERLAY: Basic JavaScript execution working');
+        } catch (error) {
+            console.error('❌ OVERLAY: Basic JavaScript failed:', error);
+        }
+
+        // Global state
+        let overlayState = {
+            patients: [],
+            questions: [],
+            currentPatientIndex: 0,
+            currentQuestionIndex: 0,
+            currentResponse: null,
+            isListening: false,
+            isPaused: false
+        };
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('✅ OVERLAY: DOMContentLoaded fired');
+            
+            try {
+                await initializeOverlay();
+                setupEventListeners();
+                updateDisplay();
+                console.log('🎉 OVERLAY: Initialization complete');
+            } catch (error) {
+                console.error('❌ OVERLAY: Initialization failed:', error);
+            }
+        });
+
+        async function initializeOverlay() {
+            console.log('🔧 OVERLAY: Initializing...');
+            
+            // Load data from main process
+            if (window.dataManager) {
+                console.log('📊 OVERLAY: Loading data...');
+                overlayState.patients = await window.dataManager.getAllPatients();
+                overlayState.questions = await window.dataManager.getAllQuestions();
+                
+                console.log('✅ OVERLAY: Data loaded:', {
+                    patients: overlayState.patients.length,
+                    questions: overlayState.questions.length
+                });
+            } else {
+                console.warn('⚠️ OVERLAY: DataManager not available');
+            }
+        }
+
+        function setupEventListeners() {
+            console.log('🔧 OVERLAY: Setting up event listeners...');
+            
+            // Get button elements
+            const resetBtn = document.getElementById('reset-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            const testBtn = document.getElementById('test-btn');
+
+            console.log('🔍 OVERLAY: Button elements found:', {
+                resetBtn: !!resetBtn,
+                nextBtn: !!nextBtn,
+                pauseBtn: !!pauseBtn,
+                testBtn: !!testBtn
+            });
+
+            // Reset button
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    console.log('🔄 OVERLAY: RESET BUTTON CLICKED!');
+                    console.log('📍 Timestamp:', new Date().toISOString());
+                    handleReset();
+                });
+            }
+
+            // Next button
+            if (nextBtn) {
+                nextBtn.addEventListener('click', () => {
+                    console.log('▶️ OVERLAY: NEXT BUTTON CLICKED!');
+                    console.log('📍 Timestamp:', new Date().toISOString());
+                    handleNext();
+                });
+            }
+
+            // Pause button
+            if (pauseBtn) {
+                pauseBtn.addEventListener('click', () => {
+                    console.log('⏸️ OVERLAY: PAUSE BUTTON CLICKED!');
+                    console.log('📍 Timestamp:', new Date().toISOString());
+                    handlePause();
+                });
+            }
+
+            // Test button - MOST IMPORTANT
+            if (testBtn) {
+                // Add simple click handler first
+                testBtn.addEventListener('click', function() {
+                    console.log('🧪 OVERLAY: TEST BUTTON CLICKED!');
+                    console.log('📍 Timestamp:', new Date().toISOString());
+                    console.log('🔍 Current State:', overlayState);
+                    
+                    // Simple test without async
+                    const responseDisplay = document.getElementById('response-display');
+                    if (responseDisplay) {
+                        responseDisplay.textContent = 'TEST BUTTON WORKS!';
+                        responseDisplay.style.color = '#4CAF50';
+                    }
+                    
+                    // Then call the full test
+                    handleTest();
+                });
+                console.log('✅ OVERLAY: Test button event listener attached');
+                
+                // Verify the button is clickable
+                console.log('🔍 OVERLAY: Test button details:', {
+                    id: testBtn.id,
+                    tagName: testBtn.tagName,
+                    textContent: testBtn.textContent,
+                    disabled: testBtn.disabled,
+                    style: testBtn.style.display
+                });
+            } else {
+                console.error('❌ OVERLAY: Test button not found!');
+            }
+
+            console.log('✅ OVERLAY: Event listeners setup complete');
+        }
+
+        function updateDisplay() {
+            console.log('🖥️ OVERLAY: Updating display...');
+            
+            // Update patient info
+            const patientMrn = document.getElementById('patient-mrn');
+            const patientName = document.getElementById('patient-name');
+            const progressText = document.getElementById('progress-text');
+            
+            if (overlayState.patients.length > 0) {
+                const patient = overlayState.patients[overlayState.currentPatientIndex];
+                if (patientMrn) patientMrn.textContent = `MRN: ${patient.mrn}`;
+                if (patientName) patientName.textContent = patient.name;
+                if (progressText) progressText.textContent = `${overlayState.currentQuestionIndex + 1}/${overlayState.questions.length}`;
+                
+                console.log('👤 OVERLAY: Patient displayed:', {
+                    mrn: patient.mrn,
+                    name: patient.name,
+                    progress: `${overlayState.currentQuestionIndex + 1}/${overlayState.questions.length}`
+                });
+            }
+            
+            // Update question
+            const questionText = document.getElementById('question-text');
+            if (overlayState.questions.length > 0) {
+                const question = overlayState.questions[overlayState.currentQuestionIndex];
+                if (questionText) questionText.textContent = question.text;
+                
+                console.log('❓ OVERLAY: Question displayed:', question.text);
+            }
+            
+            // Update status
+            const statusText = document.getElementById('status-text');
+            if (statusText) {
+                statusText.textContent = overlayState.isListening ? 'Listening...' : 'Ready';
+            }
+        }
+
+        async function handleTest() {
+            console.log('🧪 OVERLAY: Starting comprehensive test...');
+            
+            try {
+                // Test 1: Check APIs
+                console.log('🧪 TEST 1: Checking available APIs...');
+                console.log('   - window.electronAPI:', !!window.electronAPI);
+                console.log('   - window.dataManager:', !!window.dataManager);
+                
+                // Test 2: Start live transcription
+                if (window.electronAPI) {
+                    console.log('🧪 TEST 2: Testing live transcription...');
+                    
+                    const initResult = await window.electronAPI.initializeLiveTranscription();
+                    console.log('📊 Live transcription init result:', initResult);
+                    
+                    const streamResult = await window.electronAPI.startLiveTranscriptionStreaming();
+                    console.log('📊 Streaming start result:', streamResult);
+                    
+                    const audioResult = await window.electronAPI.startAudioCapture({
+                        sampleRate: 16000,
+                        channels: 1,
+                        bufferSize: 4096
+                    });
+                    console.log('📊 Audio capture result:', audioResult);
+                    
+                    // Test 3: Send dummy audio
+                    console.log('🧪 TEST 3: Sending dummy audio...');
+                    const dummyAudio = new ArrayBuffer(1024);
+                    const sendResult = await window.electronAPI.sendAudioToLiveTranscription(dummyAudio);
+                    console.log('📊 Audio send result:', sendResult);
+                    
+                    // Update UI to show test is working
+                    const responseDisplay = document.getElementById('response-display');
+                    if (responseDisplay) {
+                        responseDisplay.textContent = 'TEST: Speech recognition active';
+                        responseDisplay.classList.add('listening');
+                    }
+                    
+                    const statusText = document.getElementById('status-text');
+                    if (statusText) {
+                        statusText.textContent = 'Test completed - Speech recognition ready';
+                    }
+                    
+                    console.log('🎉 OVERLAY: Test completed successfully');
+                } else {
+                    console.error('❌ OVERLAY: ElectronAPI not available for testing');
+                }
+                
+            } catch (error) {
+                console.error('❌ OVERLAY: Test failed:', error);
+                
+                const responseDisplay = document.getElementById('response-display');
+                if (responseDisplay) {
+                    responseDisplay.textContent = `TEST FAILED: ${error.message}`;
+                }
+            }
+        }
+
+        function handleReset() {
+            console.log('🔄 OVERLAY: Resetting current question...');
+            overlayState.currentResponse = null;
+            
+            const responseDisplay = document.getElementById('response-display');
+            if (responseDisplay) {
+                responseDisplay.textContent = 'Speak your answer...';
+                responseDisplay.classList.remove('listening');
+            }
+            
+            const statusText = document.getElementById('status-text');
+            if (statusText) {
+                statusText.textContent = 'Ready';
+            }
+            
+            overlayState.isListening = false;
+        }
+
+        function handleNext() {
+            console.log('▶️ OVERLAY: Moving to next question...');
+            
+            // Move to next question
+            overlayState.currentQuestionIndex++;
+            
+            // Check if we need to move to next patient
+            if (overlayState.currentQuestionIndex >= overlayState.questions.length) {
+                overlayState.currentQuestionIndex = 0;
+                overlayState.currentPatientIndex++;
+                
+                // Check if we're done with all patients
+                if (overlayState.currentPatientIndex >= overlayState.patients.length) {
+                    console.log('🎉 OVERLAY: All questionnaires completed!');
+                    alert('All questionnaires completed!');
+                    return;
+                }
+            }
+            
+            // Reset response for new question
+            overlayState.currentResponse = null;
+            
+            // Update display
+            updateDisplay();
+            handleReset();
+        }
+
+        function handlePause() {
+            console.log('⏸️ OVERLAY: Toggling pause state...');
+            overlayState.isPaused = !overlayState.isPaused;
+            
+            const pauseBtn = document.getElementById('pause-btn');
+            if (pauseBtn) {
+                pauseBtn.textContent = overlayState.isPaused ? '▶️ Resume' : '⏸️ Pause';
+            }
+            
+            if (overlayState.isPaused) {
+                overlayState.isListening = false;
+                const statusText = document.getElementById('status-text');
+                if (statusText) statusText.textContent = 'Paused';
+            }
+        }
+
+        // Global error handlers
+        window.addEventListener('error', (event) => {
+            console.error('❌ OVERLAY: Global error:', event.error);
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('❌ OVERLAY: Unhandled promise rejection:', event.reason);
+        });
+
+        console.log('🎯 OVERLAY HTML: Script loaded completely');
+    </script>
+</body>
+</html>

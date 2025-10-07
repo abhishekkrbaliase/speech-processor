@@ -1,0 +1,11 @@
+QuestionID,QuestionText,ExpectedResponseType,Order
+q1,Do you have any known allergies to medications?,yes_no,1
+q2,When was your last visit to a healthcare facility?,date_time,2
+q3,Are you currently experiencing any pain?,yes_no,3
+q4,Do you have any emergency contacts we should know about?,any,4
+q5,Have you had any surgeries in the past year?,yes_no,5
+q6,When did you first notice your current symptoms?,date_time,6
+q7,Are you currently taking any medications?,yes_no,7
+q8,Do you have a history of heart disease in your family?,yes_no,8
+q9,What is your preferred method of contact for follow-up?,any,9
+q10,Have you experienced any side effects from previous treatments?,not_applicable,10

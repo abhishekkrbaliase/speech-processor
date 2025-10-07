@@ -1,0 +1,11 @@
+MRN,Name,Department,Age,DateOfBirth,IsActive,ContactPhone,EmergencyContact
+MRN001,Alice Johnson,Cardiology,34,1989-05-15,true,555-0101,John Johnson (Spouse) - 555-0102
+MRN002,Bob Wilson,Neurology,45,1978-11-22,true,555-0201,Mary Wilson (Wife) - 555-0202
+MRN003,Carol Davis,Orthopedics,28,1995-03-08,true,555-0301,David Davis (Brother) - 555-0302
+MRN004,David Miller,Cardiology,52,1971-09-14,true,555-0401,Susan Miller (Daughter) - 555-0402
+MRN005,Emma Brown,Neurology,39,1984-12-03,false,555-0501,Tom Brown (Husband) - 555-0502
+MRN006,Frank Garcia,Orthopedics,61,1962-07-19,true,555-0601,Lisa Garcia (Wife) - 555-0602
+MRN007,Grace Lee,Cardiology,29,1994-01-25,true,555-0701,Michael Lee (Father) - 555-0702
+MRN008,Henry Taylor,Neurology,47,1976-06-11,true,555-0801,Sarah Taylor (Sister) - 555-0802
+MRN009,Iris Chen,Orthopedics,33,1990-10-07,true,555-0901,James Chen (Spouse) - 555-0902
+MRN010,Jack Anderson,Cardiology,56,1967-04-30,false,555-1001,Nancy Anderson (Wife) - 555-1002

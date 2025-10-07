@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            color: white;
+        }
+
+        .drag-handle {
+            height: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: move;
+            -webkit-app-region: drag;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .patient-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            -webkit-app-region: no-drag;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .overlay-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 12px;
+        }
+
+        .question-line {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            border-left: 3px solid #4285f4;
+            min-height: 45px;
+        }
+
+        .question-text {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .answer-line {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            border-left: 3px solid #34a853;
+            min-height: 45px;
+        }
+
+        .status-text {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+
+        .response-display {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            min-height: 20px;
+        }
+
+        .controls-line {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px;
+            border-left: 3px solid #ff9800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .control-button {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: white;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-app-region: no-drag;
+            min-width: 70px;
+        }
+
+        .control-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .control-button.primary {
+            background: rgba(33, 150, 243, 0.4);
+            border-color: rgba(33, 150, 243, 0.6);
+        }
+
+        .control-button.danger {
+            background: rgba(244, 67, 54, 0.4);
+            border-color: rgba(244, 67, 54, 0.6);
+        }
+
+        .control-button.test {
+            background: rgba(76, 175, 80, 0.4);
+            border-color: rgba(76, 175, 80, 0.6);
+        }
+
+        .listening {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Drag handle with patient info -->
+    <div class="drag-handle">
+        <div class="patient-header">
+            <span id="patient-mrn">MRN: --</span>
+            <span id="patient-name">No patient loaded</span>
+            <span id="progress-text">0/0</span>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="overlay-content">
+        <!-- Question -->
+        <div class="question-line">
+            <div id="question-text" class="question-text">Load questions to begin...</div>
+        </div>
+
+        <!-- Answer Recognition -->
+        <div class="answer-line">
+            <div id="status-text" class="status-text">Ready</div>
+            <div id="response-display" class="response-display">Speak your answer...</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-line">
+            <button class="control-button danger" id="reset-btn">🔄 Reset</button>
+            <button class="control-button primary" id="next-btn">▶️ Next</button>
+            <button class="control-button" id="pause-btn">⏸️ Pause</button>
+            <button class="control-button test" id="test-btn">🧪 Test</button>
+        </div>
+    </div>
+
+    <script src="overlay-new.js"></script>
+</body>
+</html>

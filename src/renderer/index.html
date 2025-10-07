@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';">
+    <title>Speech Overlay App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-info { background: #17a2b8; color: white; }
+        
+        .status {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .status-item {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .section h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .section p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Speech Overlay App</h1>
+        
+        <!-- Data Loading Section -->
+        <div class="section">
+            <h3>📊 Load Data</h3>
+            <p>Load patient and questions CSV files to begin questionnaire collection.</p>
+            
+            <div class="buttons">
+                <button id="load-patients-btn" class="btn btn-primary">
+                    📋 Load Patients CSV
+                </button>
+                <button id="load-questions-btn" class="btn btn-success">
+                    ❓ Load Questions CSV
+                </button>
+                <button id="export-data-btn" class="btn btn-warning" disabled>
+                    📤 Export Responses
+                </button>
+            </div>
+            
+            <div class="status">
+                <div id="patients-status" class="status-item">👥 Patients: Not loaded</div>
+                <div id="questions-status" class="status-item">❓ Questions: Not loaded</div>
+                <div id="responses-status" class="status-item">💬 Responses: 0 collected</div>
+            </div>
+        </div>
+
+        <!-- Speech Recognition Section -->
+        <div class="section">
+            <h3>🎤 Start Questionnaire</h3>
+            <p>Begin speech-to-text questionnaire collection with loaded data.</p>
+            
+            <div class="buttons">
+                <button id="overlay-btn" class="btn btn-info">
+                    📱 Start Questionnaire Overlay
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="renderer.js"></script>
+</body>
+</html>
