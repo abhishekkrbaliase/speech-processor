@@ -201,7 +201,10 @@
             currentQuestionIndex: 0,
             currentResponse: null,
             isListening: false,
-            isPaused: false
+            isPaused: false,
+            liveTranscriptionActive: false,
+            lastPartialResult: null,
+            lastFinalResult: null
         };
 
         // Initialize when DOM is ready
@@ -211,6 +214,7 @@
             try {
                 await initializeOverlay();
                 setupEventListeners();
+                setupLiveTranscriptionListeners();
                 updateDisplay();
                 console.log('🎉 OVERLAY: Initialization complete');
             } catch (error) {
@@ -234,6 +238,53 @@
             } else {
                 console.warn('⚠️ OVERLAY: DataManager not available');
             }
+        }
+
+        function setupLiveTranscriptionListeners() {
+            console.log('🎵 OVERLAY: Setting up live transcription listeners...');
+            
+            if (!window.electronAPI) {
+                console.error('❌ OVERLAY: ElectronAPI not available for live transcription');
+                return;
+            }
+
+            // Listen for partial results (interim transcription)
+            window.electronAPI.onPartialResult((result) => {
+                console.log('📝 OVERLAY: Received partial result:', {
+                    transcript: result.transcript,
+                    confidence: result.confidence,
+                    stability: result.stability,
+                    timestamp: new Date().toISOString()
+                });
+                
+                displayPartialTranscription(result);
+            });
+
+            // Listen for final results
+            window.electronAPI.onFinalResult((result) => {
+                console.log('✅ OVERLAY: Received final result:', {
+                    transcript: result.transcript,
+                    confidence: result.confidence,
+                    words: result.words?.length || 0,
+                    timestamp: new Date().toISOString()
+                });
+                
+                displayFinalTranscription(result);
+            });
+
+            // Listen for errors
+            window.electronAPI.onLiveTranscriptionError((error) => {
+                console.error('❌ OVERLAY: Live transcription error:', {
+                    code: error.code,
+                    message: error.message,
+                    recoverable: error.recoverable,
+                    timestamp: new Date().toISOString()
+                });
+                
+                displayTranscriptionError(error);
+            });
+
+            console.log('✅ OVERLAY: Live transcription listeners setup complete');
         }
 
         function setupEventListeners() {
@@ -290,7 +341,7 @@
                     // Simple test without async
                     const responseDisplay = document.getElementById('response-display');
                     if (responseDisplay) {
-                        responseDisplay.textContent = 'TEST BUTTON WORKS!';
+                        responseDisplay.textContent = 'Starting live transcription test...';
                         responseDisplay.style.color = '#4CAF50';
                     }
                     
@@ -373,27 +424,61 @@
                     const audioResult = await window.electronAPI.startAudioCapture({
                         sampleRate: 16000,
                         channels: 1,
-                        bufferSize: 4096
+                        bufferSize: 1600 // 100ms chunks for low latency
                     });
                     console.log('📊 Audio capture result:', audioResult);
                     
-                    // Test 3: Send dummy audio
-                    console.log('🧪 TEST 3: Sending dummy audio...');
-                    const dummyAudio = new ArrayBuffer(1024);
+                    // Set up automatic audio forwarding to live transcription
+                    window.electronAPI.onAudioDetected((audioBuffer) => {
+                        console.log('🎤 OVERLAY: Audio detected, forwarding to live transcription:', {
+                            size: audioBuffer.byteLength,
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        // Forward audio to live transcription
+                        window.electronAPI.sendAudioToLiveTranscription(audioBuffer)
+                            .then(result => {
+                                if (!result.success) {
+                                    console.warn('⚠️ OVERLAY: Failed to send audio to live transcription:', result.error);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('❌ OVERLAY: Error sending audio to live transcription:', error);
+                            });
+                    });
+                    
+                    // Test 3: Test with real audio if available
+                    console.log('🧪 TEST 3: Testing audio processing...');
+                    
+                    // First test with dummy audio to verify connection
+                    const dummyAudio = new ArrayBuffer(1600); // 100ms at 16kHz
                     const sendResult = await window.electronAPI.sendAudioToLiveTranscription(dummyAudio);
-                    console.log('📊 Audio send result:', sendResult);
+                    console.log('📊 Dummy audio send result:', sendResult);
+                    
+                    // Add a test button for real audio file testing
+                    const testBtn = document.getElementById('test-btn');
+                    if (testBtn) {
+                        testBtn.textContent = '🎤 Test Audio';
+                        testBtn.title = 'Click to test with audio file (dateRecording.m4a should transcribe to "21st May 1992 11:00 AM")';
+                    }
                     
                     // Update UI to show test is working
                     const responseDisplay = document.getElementById('response-display');
                     if (responseDisplay) {
-                        responseDisplay.textContent = 'TEST: Speech recognition active';
+                        responseDisplay.textContent = 'Live transcription active - speak now...';
                         responseDisplay.classList.add('listening');
+                        responseDisplay.style.color = '#4caf50';
+                        responseDisplay.style.borderLeft = '3px solid #4caf50';
                     }
                     
                     const statusText = document.getElementById('status-text');
                     if (statusText) {
-                        statusText.textContent = 'Test completed - Speech recognition ready';
+                        statusText.textContent = 'Live transcription ready - interim results enabled';
                     }
+                    
+                    // Mark live transcription as active
+                    overlayState.liveTranscriptionActive = true;
+                    overlayState.isListening = true;
                     
                     console.log('🎉 OVERLAY: Test completed successfully');
                 } else {
@@ -469,6 +554,125 @@
                 const statusText = document.getElementById('status-text');
                 if (statusText) statusText.textContent = 'Paused';
             }
+        }
+
+        function displayPartialTranscription(result) {
+            const responseDisplay = document.getElementById('response-display');
+            const statusText = document.getElementById('status-text');
+            
+            console.log('📝 OVERLAY: Processing partial transcription:', {
+                transcript: result.transcript,
+                confidence: result.confidence,
+                stability: result.stability,
+                timestamp: new Date().toISOString()
+            });
+            
+            if (responseDisplay) {
+                // Display partial result with visual indication
+                responseDisplay.textContent = result.transcript || 'Listening...';
+                responseDisplay.style.opacity = '0.8'; // Partial results are semi-transparent
+                responseDisplay.style.fontStyle = 'italic'; // Italic for partial results
+                responseDisplay.style.color = '#ffffff';
+                responseDisplay.classList.add('listening'); // Add pulsing animation
+                
+                // Add confidence indicator with background
+                if (result.confidence > 0.8) {
+                    responseDisplay.style.borderLeft = '3px solid #4caf50'; // Green for high confidence
+                    responseDisplay.style.backgroundColor = 'rgba(76, 175, 80, 0.05)';
+                } else if (result.confidence > 0.5) {
+                    responseDisplay.style.borderLeft = '3px solid #ff9800'; // Orange for medium confidence
+                    responseDisplay.style.backgroundColor = 'rgba(255, 152, 0, 0.05)';
+                } else {
+                    responseDisplay.style.borderLeft = '3px solid #f44336'; // Red for low confidence
+                    responseDisplay.style.backgroundColor = 'rgba(244, 67, 54, 0.05)';
+                }
+            }
+            
+            if (statusText) {
+                const confidencePercent = Math.round((result.confidence || 0) * 100);
+                const stabilityPercent = Math.round((result.stability || 0) * 100);
+                statusText.textContent = `Live transcription (${confidencePercent}% confidence, ${stabilityPercent}% stability)`;
+            }
+            
+            // Store the partial result
+            overlayState.lastPartialResult = result;
+            
+            console.log('✅ OVERLAY: Displayed partial transcription successfully');
+        }
+
+        function displayFinalTranscription(result) {
+            const responseDisplay = document.getElementById('response-display');
+            const statusText = document.getElementById('status-text');
+            
+            console.log('🎯 OVERLAY: Processing final transcription:', {
+                transcript: result.transcript,
+                confidence: result.confidence,
+                words: result.words?.length || 0,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Check if this matches our test case
+            if (result.transcript && result.transcript.toLowerCase().includes('21st may') && result.transcript.includes('1992')) {
+                console.log('🎉 OVERLAY: TEST CASE MATCH! Expected "21st May 1992 11:00 AM", got:', result.transcript);
+            }
+            
+            if (responseDisplay) {
+                // Display final result with full opacity
+                responseDisplay.textContent = result.transcript || 'No speech detected';
+                responseDisplay.style.opacity = '1.0'; // Full opacity for final results
+                responseDisplay.style.fontStyle = 'normal'; // Normal style for final results
+                responseDisplay.style.color = '#ffffff';
+                responseDisplay.classList.remove('listening'); // Remove pulsing animation
+                
+                // Add confidence indicator with stronger background for final results
+                if (result.confidence > 0.8) {
+                    responseDisplay.style.borderLeft = '3px solid #4caf50'; // Green for high confidence
+                    responseDisplay.style.backgroundColor = 'rgba(76, 175, 80, 0.15)'; // Stronger green background
+                } else if (result.confidence > 0.5) {
+                    responseDisplay.style.borderLeft = '3px solid #ff9800'; // Orange for medium confidence
+                    responseDisplay.style.backgroundColor = 'rgba(255, 152, 0, 0.15)'; // Stronger orange background
+                } else {
+                    responseDisplay.style.borderLeft = '3px solid #f44336'; // Red for low confidence
+                    responseDisplay.style.backgroundColor = 'rgba(244, 67, 54, 0.15)'; // Stronger red background
+                }
+            }
+            
+            if (statusText) {
+                const confidencePercent = Math.round((result.confidence || 0) * 100);
+                const wordsCount = result.words?.length || 0;
+                statusText.textContent = `Final result (${confidencePercent}% confidence, ${wordsCount} words)`;
+            }
+            
+            // Store the result for potential use
+            overlayState.currentResponse = {
+                text: result.transcript,
+                confidence: result.confidence,
+                timestamp: result.timestamp,
+                words: result.words
+            };
+            overlayState.lastFinalResult = result;
+            
+            console.log('✅ OVERLAY: Displayed final transcription successfully');
+        }
+
+        function displayTranscriptionError(error) {
+            const responseDisplay = document.getElementById('response-display');
+            const statusText = document.getElementById('status-text');
+            
+            if (responseDisplay) {
+                responseDisplay.textContent = `Error: ${error.message}`;
+                responseDisplay.style.color = '#f44336'; // Red for errors
+                responseDisplay.style.opacity = '1.0';
+                responseDisplay.style.fontStyle = 'normal';
+                responseDisplay.style.borderLeft = '3px solid #f44336';
+                responseDisplay.style.backgroundColor = 'rgba(244, 67, 54, 0.1)';
+            }
+            
+            if (statusText) {
+                statusText.textContent = error.recoverable ? 'Error (retrying...)' : 'Error (failed)';
+            }
+            
+            console.error('❌ OVERLAY: Displayed transcription error:', error.message);
         }
 
         // Global error handlers

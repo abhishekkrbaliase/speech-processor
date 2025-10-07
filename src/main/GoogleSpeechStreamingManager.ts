@@ -94,13 +94,13 @@ export class GoogleSpeechStreamingManager {
     // Set default configuration and merge with provided config
     const defaultConfig: GoogleSpeechStreamingConfig = {
       languageCode: 'en-US',
-      model: 'command_and_search',
+      model: 'latest_short', // Optimized for low latency
       enableInterimResults: true,
       enableAutomaticPunctuation: true,
       sampleRateHertz: 16000,
       encoding: 'LINEAR16',
       streamingTimeout: 60000, // 60 seconds
-      chunkSize: 4096, // 4KB chunks
+      chunkSize: 1600, // 100ms chunks for minimal latency
       maxAlternatives: 1
     };
     
@@ -366,7 +366,7 @@ class GoogleStreamingSession implements StreamingSession {
 
   async initialize(): Promise<void> {
     try {
-      // Create streaming recognition request configuration
+      // Create streaming recognition request configuration optimized for low latency
       const request = {
         config: {
           encoding: this.config.encoding as any,
@@ -376,21 +376,27 @@ class GoogleStreamingSession implements StreamingSession {
           enableAutomaticPunctuation: this.config.enableAutomaticPunctuation,
           enableWordTimeOffsets: true,
           maxAlternatives: this.config.maxAlternatives,
+          useEnhanced: true, // Use enhanced model for better accuracy
           // Enhanced configuration for better accuracy
           alternativeLanguageCodes: ['en-IN', 'en-CA'], // Support multiple English accents
           speechContexts: [{
             phrases: [
-              // Yes/No responses
-              'yes', 'no', 'yeah', 'nope', 'affirmative', 'negative',
+              // Yes/No responses (high priority)
+              'yes', 'no', 'yeah', 'nope', 'yep', 'yup', 'sure', 'correct', 'right', 'true',
+              'affirmative', 'negative', 'ok', 'okay', 'alright', 'definitely', 'absolutely',
               // Date components
               'January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December',
+              'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
+              'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth',
+              'twenty first', 'twenty second', 'twenty third', 'twenty fourth', 'twenty fifth', 'twenty sixth', 'twenty seventh', 'twenty eighth', 'twenty ninth', 'thirtieth', 'thirty first',
               // Time components
               'AM', 'PM', 'morning', 'afternoon', 'evening', 'night',
+              'eleven fifteen', 'three thirty', 'twelve noon', 'midnight',
               // Not applicable
               'not applicable', 'N/A', 'not relevant'
             ],
-            boost: 15.0
+            boost: 20.0 // Higher boost for critical responses
           }],
           profanityFilter: false
         },

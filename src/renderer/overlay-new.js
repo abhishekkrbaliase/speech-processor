@@ -208,6 +208,9 @@ var isListening = false;
 var speechDetected = false;
 var silenceCounter = 0;
 var isProcessing = false;
+var lastStatusUpdate = 0;
+var audioLevelHistory = [];
+var maxBufferDuration = 4.0; // Maximum buffer duration in seconds (reduced from 7.7s)
 
 function startBrowserAudioCapture() {
     console.log('🎤 OVERLAY-NEW: Starting browser audio capture...');
@@ -303,16 +306,30 @@ function setupAudioProcessing(stream) {
         
         var inputData = event.inputBuffer.getChannelData(0);
         
-        // Calculate audio level
+        // Calculate audio level (RMS)
         var sum = 0;
         for (var i = 0; i < inputData.length; i++) {
             sum += inputData[i] * inputData[i];
         }
         var rms = Math.sqrt(sum / inputData.length);
         
-        // Improved speech detection with better threshold
+        // Audio quality monitoring
         var speechThreshold = 0.005; // Lower threshold for better sensitivity
+        var noiseThreshold = 0.001;   // Minimum level to detect microphone working
         var isSpeech = rms > speechThreshold;
+        var hasAudio = rms > noiseThreshold;
+        
+        // Monitor microphone health
+        if (!hasAudio && audioBuffer.length === 0) {
+            // No audio detected - microphone might be muted or not working
+            var statusText = document.getElementById('status-text');
+            if (statusText && Date.now() - lastStatusUpdate > 3000) {
+                statusText.textContent = 'No audio detected - check microphone';
+                statusText.style.color = '#ff9800';
+                lastStatusUpdate = Date.now();
+            }
+            return; // Skip processing if no audio at all
+        }
         
         if (isSpeech) {
             speechDetected = true;
@@ -340,30 +357,181 @@ function setupAudioProcessing(stream) {
         var shouldProcess = false;
         var reason = '';
         
-        // Adaptive processing based on speech patterns
-        if (bufferDuration >= 1.5 && silenceDuration >= 0.8) {
-            // Quick processing for short responses (Yes/No)
+        // Enhanced adaptive processing with audio quality validation
+        if (bufferDuration >= 1.2 && silenceDuration >= 0.6) {
+            // Quick processing for short responses (Yes/No) - reduced thresholds
             shouldProcess = true;
             reason = 'short response detected';
-        } else if (bufferDuration >= 3.0 && silenceDuration >= 1.2) {
-            // Medium processing for dates/times
+        } else if (bufferDuration >= 2.5 && silenceDuration >= 1.0) {
+            // Medium processing for dates/times - reduced from 3.0s
             shouldProcess = true;
             reason = 'medium response detected';
-        } else if (bufferDuration >= 6.0) {
-            // Force processing for long responses
+        } else if (bufferDuration >= maxBufferDuration) {
+            // Force processing before buffer gets too long (4.0s instead of 6.0s)
             shouldProcess = true;
-            reason = 'long response - force processing';
+            reason = 'max buffer duration reached - preventing quality degradation';
+        }
+        
+        // Audio quality validation before processing
+        if (shouldProcess && speechDetected && !isProcessing && audioBuffer.length > 8000) {
+            // Check if buffer has sufficient speech content
+            var speechRatio = calculateSpeechRatio(audioBuffer);
+            if (speechRatio < 0.1) {
+                // Buffer is mostly silence - don't process
+                console.log('⚠️ OVERLAY-NEW: Skipping processing - insufficient speech content (' + Math.round(speechRatio * 100) + '%)');
+                audioBuffer = []; // Clear buffer and wait for better audio
+                speechDetected = false;
+                return;
+            }
         }
         
         if (shouldProcess && speechDetected && !isProcessing && audioBuffer.length > 8000) {
             console.log('🎤 OVERLAY-NEW: Processing audio buffer:', bufferDuration.toFixed(1) + 's (' + reason + ')');
-            processAudioBuffer();
+            processAudioBufferWithQualityCheck();
         }
     };
     
     // Connect audio nodes
     microphone.connect(scriptProcessor);
     scriptProcessor.connect(audioContext.destination);
+}
+
+// Helper function to calculate speech content ratio in audio buffer
+function calculateSpeechRatio(buffer) {
+    if (buffer.length === 0) return 0;
+    
+    var speechSamples = 0;
+    var speechThreshold = 0.005;
+    
+    // Analyze in chunks to get better speech detection
+    var chunkSize = 1024;
+    for (var i = 0; i < buffer.length; i += chunkSize) {
+        var chunk = buffer.slice(i, Math.min(i + chunkSize, buffer.length));
+        
+        // Calculate RMS for this chunk
+        var sum = 0;
+        for (var j = 0; j < chunk.length; j++) {
+            sum += chunk[j] * chunk[j];
+        }
+        var rms = Math.sqrt(sum / chunk.length);
+        
+        if (rms > speechThreshold) {
+            speechSamples += chunk.length;
+        }
+    }
+    
+    return speechSamples / buffer.length;
+}
+
+// Enhanced audio processing with quality checks
+function processAudioBufferWithQualityCheck() {
+    if (audioBuffer.length === 0 || isProcessing) return;
+    
+    isProcessing = true;
+    
+    try {
+        // Pre-process audio: remove silence from beginning and end
+        var cleanedBuffer = removeLeadingTrailingSilence(audioBuffer);
+        
+        if (cleanedBuffer.length < 4000) {
+            // Buffer too short after cleaning - likely just noise
+            console.log('⚠️ OVERLAY-NEW: Buffer too short after silence removal, skipping');
+            resetAudioBuffer();
+            return;
+        }
+        
+        // Convert to ArrayBuffer for processing
+        var float32Array = new Float32Array(cleanedBuffer);
+        var arrayBuffer = float32Array.buffer;
+        
+        console.log('🎤 OVERLAY-NEW: Processing', cleanedBuffer.length, 'audio samples (cleaned from', audioBuffer.length, ')');
+        
+        // Check if we have electronAPI for processing
+        if (window.electronAPI && window.electronAPI.processAudioStream) {
+            window.electronAPI.processAudioStream(arrayBuffer).then(function(result) {
+                if (result.success && result.response && result.response.rawText) {
+                    var text = result.response.rawText.trim();
+                    var confidence = result.response.confidence || 0;
+                    
+                    console.log('✅ OVERLAY-NEW: Transcribed:', text, '(' + Math.round(confidence * 100) + '% confidence)');
+                    
+                    // Update UI with result
+                    var responseDisplay = document.getElementById('response-display');
+                    if (responseDisplay) {
+                        responseDisplay.textContent = '"' + text + '"';
+                        responseDisplay.style.color = '#4CAF50';
+                    }
+                    
+                    var statusText = document.getElementById('status-text');
+                    if (statusText) {
+                        statusText.textContent = 'Captured: ' + Math.round(confidence * 100) + '% confidence';
+                        statusText.style.color = '#4CAF50';
+                    }
+                    
+                } else {
+                    console.log('ℹ️ OVERLAY-NEW: No transcription result - trying shorter buffer next time');
+                    
+                    // Provide user feedback
+                    var statusText = document.getElementById('status-text');
+                    if (statusText) {
+                        statusText.textContent = 'No speech detected - please speak clearly';
+                        statusText.style.color = '#ff9800';
+                    }
+                }
+            }).catch(function(error) {
+                console.error('❌ OVERLAY-NEW: Processing failed:', error);
+                
+                var statusText = document.getElementById('status-text');
+                if (statusText) {
+                    statusText.textContent = 'Processing error - please try again';
+                    statusText.style.color = '#f44336';
+                }
+            }).finally(function() {
+                resetAudioBuffer();
+            });
+        } else {
+            console.error('❌ OVERLAY-NEW: electronAPI not available');
+            resetAudioBuffer();
+        }
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Buffer processing error:', error);
+        resetAudioBuffer();
+    }
+}
+
+// Helper function to remove silence from beginning and end of audio buffer
+function removeLeadingTrailingSilence(buffer) {
+    if (buffer.length === 0) return buffer;
+    
+    var silenceThreshold = 0.002;
+    var start = 0;
+    var end = buffer.length - 1;
+    
+    // Find start of speech (skip leading silence)
+    for (var i = 0; i < buffer.length; i++) {
+        if (Math.abs(buffer[i]) > silenceThreshold) {
+            start = Math.max(0, i - 1000); // Keep a small buffer before speech
+            break;
+        }
+    }
+    
+    // Find end of speech (skip trailing silence)
+    for (var i = buffer.length - 1; i >= 0; i--) {
+        if (Math.abs(buffer[i]) > silenceThreshold) {
+            end = Math.min(buffer.length - 1, i + 1000); // Keep a small buffer after speech
+            break;
+        }
+    }
+    
+    return buffer.slice(start, end + 1);
+}
+
+// Helper function to reset audio buffer and state
+function resetAudioBuffer() {
+    audioBuffer = [];
+    speechDetected = false;
+    silenceCounter = 0;
+    isProcessing = false;
 }
 
 function processAudioBuffer() {
@@ -405,27 +573,16 @@ function processAudioBuffer() {
             }).catch(function(error) {
                 console.error('❌ OVERLAY-NEW: Processing failed:', error);
             }).finally(function() {
-                // Reset for next chunk
-                audioBuffer = [];
-                speechDetected = false;
-                silenceCounter = 0;
-                isProcessing = false;
+                resetAudioBuffer();
             });
         } else {
             console.log('❌ OVERLAY-NEW: No electronAPI available for processing');
-            // Reset anyway
-            audioBuffer = [];
-            speechDetected = false;
-            silenceCounter = 0;
-            isProcessing = false;
+            resetAudioBuffer();
         }
         
     } catch (error) {
         console.error('❌ OVERLAY-NEW: Audio processing error:', error);
-        audioBuffer = [];
-        speechDetected = false;
-        silenceCounter = 0;
-        isProcessing = false;
+        resetAudioBuffer();
     }
 }
 

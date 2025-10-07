@@ -313,7 +313,7 @@ export class CrossPlatformAudioCaptureHandler extends EventEmitter implements Au
     // Generate mock audio data every 100ms
     this.mockAudioInterval = setInterval(() => {
       // Create a buffer with some random audio-like data
-      const bufferSize = Math.floor(this.options.sampleRate! * 0.1 * 2); // 100ms of 16-bit audio
+      const bufferSize = Math.floor(this.options.sampleRate! * 0.1 * 2); // 100ms of 16-bit audio for low latency
       const mockBuffer = Buffer.alloc(bufferSize);
       
       // Fill with some random data that simulates audio

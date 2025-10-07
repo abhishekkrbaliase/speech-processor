@@ -79,21 +79,21 @@ export interface AnswerDetectionSettings {
 export const DEFAULT_LIVE_TRANSCRIPTION_CONFIG: LiveTranscriptionConfig = {
   googleSpeechConfig: {
     languageCode: 'en-US',
-    model: 'command_and_search',
+    model: 'latest_short', // Optimized for low latency
     enableInterimResults: true,
     enableAutomaticPunctuation: true,
     sampleRateHertz: 16000,
     encoding: 'LINEAR16',
     streamingTimeout: 60000, // 60 seconds
-    chunkSize: 4096, // 4KB chunks
+    chunkSize: 1600, // 100ms chunks for minimal latency (16kHz * 0.1s * 2 bytes)
     maxAlternatives: 1
   },
   
   audioSettings: {
     sampleRate: 16000,
     channels: 1,
-    chunkSize: 4096,
-    bufferDuration: 250, // 250ms buffer
+    chunkSize: 1600, // 100ms chunks for minimal latency
+    bufferDuration: 100, // 100ms buffer for real-time processing
     noiseSuppressionLevel: 'medium',
     echoCancellation: true,
     autoGainControl: true
@@ -104,8 +104,8 @@ export const DEFAULT_LIVE_TRANSCRIPTION_CONFIG: LiveTranscriptionConfig = {
     enableInterimResults: true,
     enableAutomaticPunctuation: true,
     confidenceThreshold: 0.6,
-    speechEndTimeout: 1500, // 1.5 seconds
-    maxSilenceDuration: 3000, // 3 seconds
+    speechEndTimeout: 500, // 500ms for faster finalization
+    maxSilenceDuration: 2000, // 2 seconds for quicker response
     enableWordTimestamps: true
   },
   
