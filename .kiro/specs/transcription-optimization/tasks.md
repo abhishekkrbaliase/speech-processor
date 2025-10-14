@@ -32,3 +32,10 @@
   - Overlay should have a slider which can make the overlay upto completely transparent
   - Test button should be removed. This should be handled by current "Pause" button which can initially have text as "Start"
   - _Requirements: 5.1, 5.2, 5.4_
+
+- [x] 6. Implement CSV-driven dynamic speech contexts for enhanced accuracy
+  - Parse question CSV to extract ExpectedResponseType for each question
+  - Create dynamic speech context selection based on response type (yes_no, date_time, etc.)
+  - Implement context switching when questions change to optimize for expected answer type
+  - Add support for additional response types like numeric, text, multiple_choice
+  - _Requirements: 4.1, 4.2, 4.4_

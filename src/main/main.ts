@@ -14,6 +14,7 @@ import { QuestionnaireController } from './QuestionnaireController';
 import { QuestionnaireControllerIPC } from './QuestionnaireControllerIPC';
 import { ExportManager } from './ExportManager';
 import { ExportManagerIPC } from './ExportManagerIPC';
+import { CSVDrivenSpeechContextManager } from './CSVDrivenSpeechContextManager';
 import { OverlayPosition, ProcessedResponse, AppError } from '../shared/types';
 
 class SpeechOverlayApp {
@@ -31,6 +32,7 @@ class SpeechOverlayApp {
   private questionnaireControllerIPC: QuestionnaireControllerIPC;
   private exportManager: ExportManager;
   private exportManagerIPC: ExportManagerIPC;
+  private csvContextManager: CSVDrivenSpeechContextManager;
 
   constructor() {
     logger.info('🚀 SPEECH OVERLAY APP STARTING', {}, 'MAIN');
@@ -80,6 +82,12 @@ class SpeechOverlayApp {
     
     // Initialize QuestionnaireController IPC handlers
     this.questionnaireControllerIPC = new QuestionnaireControllerIPC(this.questionnaireController);
+    
+    // Initialize CSV-driven speech context manager
+    this.csvContextManager = new CSVDrivenSpeechContextManager();
+    
+    // Set up CSV context manager integration
+    this.setupCSVContextIntegration();
     
     // Initialize ExportManager
     this.exportManager = new ExportManager(this.dataManager);
@@ -142,6 +150,9 @@ class SpeechOverlayApp {
         this.questionnaireControllerIPC.cleanup();
         this.questionnaireController.cleanup();
         
+        // Cleanup CSV context manager
+        this.csvContextManager.cleanup();
+        
         // Cleanup ExportManager IPC handlers
         this.exportManagerIPC.cleanup();
       } catch (error) {
@@ -191,6 +202,91 @@ class SpeechOverlayApp {
     this.mainWindow.on('closed', () => {
       this.mainWindow = null;
     });
+  }
+
+  /**
+   * Set up CSV-driven speech context integration
+   */
+  private setupCSVContextIntegration(): void {
+    logger.info('🔗 Setting up CSV context integration', {}, 'MAIN');
+    console.log('🔗 Setting up CSV context integration');
+
+    // Listen for question changes from QuestionnaireController
+    this.questionnaireController.on('question-changed', async (patient, question, questionIndex, totalQuestions) => {
+      try {
+        logger.info('📋 Question changed, updating speech contexts', {
+          questionId: question.id,
+          responseType: question.expectedResponseType,
+          questionIndex,
+          totalQuestions
+        }, 'MAIN');
+
+        console.log(`📋 Question changed: ${question.id} (${question.expectedResponseType})`);
+
+        // Switch contexts for the new question
+        const success = await this.csvContextManager.switchContextForQuestion(question.id);
+        
+        if (success) {
+          logger.info('✅ Speech contexts updated successfully', {
+            questionId: question.id,
+            responseType: question.expectedResponseType
+          }, 'MAIN');
+          console.log(`✅ Speech contexts updated for question: ${question.id}`);
+        } else {
+          logger.warn('⚠️ Failed to update speech contexts', {
+            questionId: question.id
+          }, 'MAIN');
+          console.warn(`⚠️ Failed to update speech contexts for question: ${question.id}`);
+        }
+
+        // Send context update to renderer windows for debugging
+        BrowserWindow.getAllWindows().forEach(window => {
+          const contextInfo = this.csvContextManager.getCurrentContextInfo();
+          window.webContents.send('speechContext:updated', {
+            questionId: question.id,
+            responseType: question.expectedResponseType,
+            contextInfo,
+            success
+          });
+        });
+
+      } catch (error) {
+        logger.error('❌ Error updating speech contexts', {
+          questionId: question.id,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }, 'MAIN');
+        console.error(`❌ Error updating speech contexts for question ${question.id}:`, error);
+      }
+    });
+
+    // Initialize contexts when questions are loaded
+    this.dataManager.on('questions-loaded', (questions) => {
+      try {
+        logger.info('📚 Questions loaded, initializing CSV contexts', {
+          questionCount: questions.length
+        }, 'MAIN');
+        console.log(`📚 Questions loaded: ${questions.length} questions`);
+
+        // Initialize the CSV context manager with the loaded questions
+        this.csvContextManager.initializeFromQuestions(questions);
+
+        // Connect the speech manager if available
+        if (this.streamingManager) {
+          this.csvContextManager.setSpeechManager(this.streamingManager);
+          logger.info('🔗 Speech manager connected to CSV context manager', {}, 'MAIN');
+          console.log('🔗 Speech manager connected to CSV context manager');
+        }
+
+      } catch (error) {
+        logger.error('❌ Error initializing CSV contexts', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }, 'MAIN');
+        console.error('❌ Error initializing CSV contexts:', error);
+      }
+    });
+
+    logger.info('✅ CSV context integration setup complete', {}, 'MAIN');
+    console.log('✅ CSV context integration setup complete');
   }
 
   private setupIpcHandlers(): void {
@@ -519,6 +615,13 @@ class SpeechOverlayApp {
         console.log('🎵 Initializing Google Speech Streaming Manager...');
         this.streamingManager = new GoogleSpeechStreamingManager(config);
         await this.streamingManager.initializeGoogleSpeech();
+        
+        // Connect CSV context manager to streaming manager
+        if (this.csvContextManager) {
+          this.csvContextManager.setSpeechManager(this.streamingManager);
+          logger.info('🔗 CSV context manager connected to streaming manager', {}, 'MAIN-IPC');
+          console.log('🔗 CSV context manager connected to streaming manager');
+        }
         
         console.log('✅ Live transcription initialized successfully');
         return { success: true };

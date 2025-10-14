@@ -9,7 +9,7 @@ export interface PatientRecord {
 export interface Question {
   id: string;
   text: string;
-  expectedResponseType: 'yes_no' | 'date_time' | 'not_applicable' | 'any';
+  expectedResponseType: 'yes_no' | 'date_time' | 'not_applicable' | 'any' | 'numeric' | 'text' | 'multiple_choice';
   order: number;
 }
 

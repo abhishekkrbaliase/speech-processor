@@ -9,7 +9,7 @@ import { Question, AppError } from '../shared/types';
 export class QuestionsParser {
   private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
   private static readonly MAX_QUESTIONS = 1000; // Maximum number of questions
-  private static readonly VALID_RESPONSE_TYPES = ['yes_no', 'date_time', 'not_applicable', 'any'];
+  private static readonly VALID_RESPONSE_TYPES = ['yes_no', 'date_time', 'not_applicable', 'any', 'numeric', 'text', 'multiple_choice'];
 
   /**
    * Parse questions file (JSON or CSV) and return validated questions
@@ -473,7 +473,7 @@ export class QuestionsParser {
     return {
       id: id.trim(),
       text: text.trim(),
-      expectedResponseType: expectedResponseType as 'yes_no' | 'date_time' | 'not_applicable' | 'any',
+      expectedResponseType: expectedResponseType as 'yes_no' | 'date_time' | 'not_applicable' | 'any' | 'numeric' | 'text' | 'multiple_choice',
       order
     };
   }

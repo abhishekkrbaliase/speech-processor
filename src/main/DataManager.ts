@@ -3,6 +3,7 @@
  * Manages in-memory storage with CRUD operations for patients, questions, and responses
  */
 
+import { EventEmitter } from 'events';
 import { PatientRecord, Question, ProcessedResponse, SessionState, ResponseType, AppError } from '../shared/types';
 import { CSVParser } from './CSVParser';
 import { QuestionsParser } from './QuestionsParser';
@@ -37,7 +38,7 @@ export interface ExportOptions {
 /**
  * DataManager class for centralized data handling
  */
-export class DataManager {
+export class DataManager extends EventEmitter {
   private patients: Map<string, PatientRecord> = new Map();
   private questions: Map<string, Question> = new Map();
   private responses: Map<string, ProcessedResponse> = new Map();
@@ -45,6 +46,8 @@ export class DataManager {
   private config: DataManagerConfig;
 
   constructor(config: Partial<DataManagerConfig> = {}) {
+    super();
+    
     this.config = {
       maxPatients: 10000,
       maxQuestions: 1000,
@@ -164,6 +167,10 @@ export class DataManager {
       });
 
       console.log(`Loaded ${questions.length} questions from ${questionsPath}`);
+      
+      // Emit event for CSV context manager integration
+      this.emit('questions-loaded', questions);
+      
       return questions;
     } catch (error) {
       throw new AppError(

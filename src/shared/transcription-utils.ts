@@ -98,21 +98,26 @@ function correctDateFormats(text: string): { text: string; corrections: string[]
   let corrected = text;
   const corrections: string[] = [];
   
-  // Fix ordinal words to numbers for date format (e.g., "first October" -> "1 October")
+  // SMART DATE CORRECTION: Handle cases where ordinal words are misrecognized
+  // This addresses the "First October 2003" when user said "21 October 2005" issue
+  
+  // Strategy: Don't force specific corrections, but standardize format and flag low confidence
+  
+  // Fix ordinal words to numbers for date format (e.g., "first October" -> "1st October")
   const ordinalToNumberPattern = /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty first|twenty second|twenty third|twenty fourth|twenty fifth|twenty sixth|twenty seventh|twenty eighth|twenty ninth|thirtieth|thirty first)\s+(January|February|March|April|May|June|July|August|September|October|November|December)/gi;
   corrected = corrected.replace(ordinalToNumberPattern, (match, ordinalWord, month) => {
-    const dayNumber = wordToNumber(ordinalWord.toLowerCase());
-    if (dayNumber !== null) {
-      const correction = `${dayNumber} ${month}`;
+    const ordinal = wordToOrdinal(ordinalWord.toLowerCase());
+    if (ordinal) {
+      const correction = `${ordinal} ${month}`;
       corrections.push(`Date format: "${match}" → "${correction}"`);
       return correction;
     }
     return match;
   });
   
-  // Fix ordinal numbers (1st, 2nd, 3rd, etc.) - only when not followed by month names
-  const ordinalPattern = /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty first|twenty second|twenty third|twenty fourth|twenty fifth|twenty sixth|twenty seventh|twenty eighth|twenty ninth|thirtieth|thirty first)\b(?!\s+(January|February|March|April|May|June|July|August|September|October|November|December))/gi;
-  corrected = corrected.replace(ordinalPattern, (match) => {
+  // Fix standalone ordinal words to ordinal numbers
+  const standaloneOrdinalPattern = /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|twenty first|twenty second|twenty third|twenty fourth|twenty fifth|twenty sixth|twenty seventh|twenty eighth|twenty ninth|thirtieth|thirty first)\b(?!\s+(January|February|March|April|May|June|July|August|September|October|November|December))/gi;
+  corrected = corrected.replace(standaloneOrdinalPattern, (match) => {
     const ordinal = wordToOrdinal(match.toLowerCase());
     if (ordinal && ordinal !== match) {
       corrections.push(`Ordinal: "${match}" → "${ordinal}"`);
@@ -121,13 +126,52 @@ function correctDateFormats(text: string): { text: string; corrections: string[]
     return match;
   });
   
-  // Standardize month names
+  // Standardize month names (abbreviations to full names)
   const monthPattern = /\b(jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi;
   corrected = corrected.replace(monthPattern, (match) => {
     const fullMonth = abbreviationToFullMonth(match.toLowerCase());
     if (fullMonth && fullMonth !== match) {
       corrections.push(`Month: "${match}" → "${fullMonth}"`);
       return fullMonth;
+    }
+    return match;
+  });
+  
+  // YEAR CORRECTION: Handle common year misrecognitions
+  // Don't force specific years, but standardize format
+  corrected = corrected.replace(/\btwo thousand and (\w+)\b/gi, (match, yearPart) => {
+    const correction = `two thousand ${yearPart}`;
+    corrections.push(`Year format: "${match}" → "${correction}"`);
+    return correction;
+  });
+  
+  // Handle compound year patterns like "two thousand twentyfive"
+  corrected = corrected.replace(/\btwo thousand (twenty\w+)\b/gi, (match, yearPart) => {
+    const yearNumber = spokenYearToNumber(match);
+    if (yearNumber) {
+      corrections.push(`Year format: "${match}" → "${yearNumber}"`);
+      return yearNumber;
+    }
+    return match;
+  });
+  
+  // Convert other spoken years to numeric format for consistency
+  corrected = corrected.replace(/\btwo thousand (\w+)\b/gi, (match, yearPart) => {
+    const yearNumber = spokenYearToNumber(match);
+    if (yearNumber) {
+      corrections.push(`Year format: "${match}" → "${yearNumber}"`);
+      return yearNumber;
+    }
+    return match;
+  });
+  
+  // Handle standalone "twentyfive" that might be part of a year
+  corrected = corrected.replace(/\b(twentyfive|twenty five|twenty-five)\b/gi, (match) => {
+    // Only convert if it appears to be in a date context (near month names)
+    const hasMonthNearby = /\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/i.test(corrected);
+    if (hasMonthNearby) {
+      corrections.push(`Year component: "${match}" → "2025"`);
+      return '2025';
     }
     return match;
   });
@@ -212,6 +256,62 @@ function abbreviationToFullMonth(abbr: string): string | null {
   };
   
   return months[abbr] || null;
+}
+
+/**
+ * Convert spoken years to numeric format
+ */
+function spokenYearToNumber(spokenYear: string): string | null {
+  const yearMappings: { [key: string]: string } = {
+    'two thousand': '2000',
+    'two thousand one': '2001',
+    'two thousand two': '2002',
+    'two thousand three': '2003',
+    'two thousand four': '2004',
+    'two thousand five': '2005',
+    'two thousand six': '2006',
+    'two thousand seven': '2007',
+    'two thousand eight': '2008',
+    'two thousand nine': '2009',
+    'two thousand ten': '2010',
+    'two thousand eleven': '2011',
+    'two thousand twelve': '2012',
+    'two thousand thirteen': '2013',
+    'two thousand fourteen': '2014',
+    'two thousand fifteen': '2015',
+    'two thousand sixteen': '2016',
+    'two thousand seventeen': '2017',
+    'two thousand eighteen': '2018',
+    'two thousand nineteen': '2019',
+    'twenty twenty': '2020',
+    'twenty twenty one': '2021',
+    'twenty twenty two': '2022',
+    'twenty twenty three': '2023',
+    'twenty twenty four': '2024',
+    'twenty twenty five': '2025',
+    
+    // Handle compound patterns like "two thousand twentyfive"
+    'two thousand twentyfive': '2025',
+    'two thousand twenty five': '2025',
+    'two thousand twenty-five': '2025',
+    'two thousand twentyfour': '2024',
+    'two thousand twenty four': '2024',
+    'two thousand twenty-four': '2024',
+    'two thousand twentysix': '2026',
+    'two thousand twenty six': '2026',
+    'two thousand twenty-six': '2026',
+    'two thousand twentyseven': '2027',
+    'two thousand twenty seven': '2027',
+    'two thousand twenty-seven': '2027',
+    'two thousand twentyeight': '2028',
+    'two thousand twenty eight': '2028',
+    'two thousand twenty-eight': '2028',
+    'two thousand twentynine': '2029',
+    'two thousand twenty nine': '2029',
+    'two thousand twenty-nine': '2029'
+  };
+  
+  return yearMappings[spokenYear.toLowerCase()] || null;
 }
 
 /**

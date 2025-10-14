@@ -30,6 +30,7 @@ export interface GoogleSpeechStreamingConfig {
   // Speech context optimization (Requirements 4.1, 4.2, 4.4)
   enableSpeechContexts?: boolean; // Enable speech context optimization
   speechContextBoost?: SpeechContextBoostConfig; // Custom boost values
+  useEnhanced?: boolean; // Use enhanced model for better accuracy
 }
 
 export interface SpeechContextBoostConfig {
@@ -352,6 +353,39 @@ export class GoogleSpeechStreamingManager {
       boostConfig: this.config.speechContextBoost,
       contextCount: this.config.enableSpeechContexts ? 8 : 0 // Number of speech context groups
     };
+  }
+
+  /**
+   * Update speech contexts dynamically based on question type
+   * This allows context-aware speech recognition
+   */
+  updateSpeechContextsForQuestion(questionType: 'yes_no' | 'date_time' | 'not_applicable' | 'any'): void {
+    // Import here to avoid circular dependencies
+    const { ContextAwareSpeechManager } = require('./ContextAwareSpeechManager');
+    
+    const mockQuestion = {
+      id: 'temp',
+      text: '',
+      expectedResponseType: questionType,
+      order: 1
+    };
+    
+    const contextConfig = ContextAwareSpeechManager.generateContextsForQuestion(mockQuestion);
+    
+    // Update configuration with new contexts
+    this.config = {
+      ...this.config,
+      model: contextConfig.model as any || this.config.model,
+      useEnhanced: contextConfig.useEnhanced || this.config.useEnhanced
+    };
+    
+    // Store the dynamic contexts for use in the next session
+    (this.config as any).dynamicSpeechContexts = contextConfig.speechContexts;
+    
+    console.log(`🎯 Updated speech contexts for question type: ${questionType}`);
+    console.log(`   - Contexts: ${contextConfig.speechContexts.length}`);
+    console.log(`   - Total phrases: ${contextConfig.speechContexts.reduce((sum: number, ctx: any) => sum + ctx.phrases.length, 0)}`);
+    console.log(`   - Model: ${contextConfig.model}`);
   }
 
   /**
