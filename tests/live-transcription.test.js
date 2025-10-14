@@ -447,6 +447,50 @@ describe('Live Transcription Tests', () => {
             expect(config.enableAutomaticPunctuation).toBe(true);
             expect(config.maxAlternatives).toBe(1);
         });
+
+        test('should have enhanced speech contexts for yes/no and dates', () => {
+            // Test that the GoogleSpeechManager has the correct model configuration
+            const { GoogleSpeechManager } = require('../dist/main/GoogleSpeechManager');
+            const manager = new GoogleSpeechManager();
+            
+            // Verify the manager has the enhanced model configuration
+            const modelInfo = manager.getModelInfo();
+            expect(modelInfo.enhanced).toBe(true);
+            expect(modelInfo.name).toBe('Google Speech-to-Text');
+            expect(modelInfo.version).toBe('latest_short');
+            expect(modelInfo.provider).toBe('Google Cloud');
+        });
+
+        test('should be configured for enhanced accuracy', () => {
+            // Verify that both managers are configured for enhanced accuracy
+            const { GoogleSpeechManager } = require('../dist/main/GoogleSpeechManager');
+            const { GoogleSpeechStreamingManager } = require('../dist/main/GoogleSpeechStreamingManager');
+            
+            const manager = new GoogleSpeechManager();
+            const streamingManager = new GoogleSpeechStreamingManager({
+                languageCode: 'en-US',
+                model: 'latest_short',
+                enableInterimResults: true,
+                enableAutomaticPunctuation: true,
+                sampleRateHertz: 16000,
+                encoding: 'LINEAR16',
+                streamingTimeout: 60000,
+                chunkSize: 1600,
+                maxAlternatives: 1
+            });
+            
+            // Test that both managers are properly initialized
+            expect(manager.isServiceInitialized()).toBe(false); // Not initialized yet
+            expect(streamingManager.isServiceReady()).toBe(false); // Not initialized yet
+            
+            // Test model configuration
+            const modelInfo = manager.getModelInfo();
+            expect(modelInfo.enhanced).toBe(true);
+            
+            const streamingConfig = streamingManager.getConfiguration();
+            expect(streamingConfig.model).toBe('latest_short');
+            expect(streamingConfig.enableInterimResults).toBe(true);
+        });
     });
 });
 

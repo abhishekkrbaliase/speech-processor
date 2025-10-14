@@ -86,7 +86,18 @@ export const DEFAULT_LIVE_TRANSCRIPTION_CONFIG: LiveTranscriptionConfig = {
     encoding: 'LINEAR16',
     streamingTimeout: 60000, // 60 seconds
     chunkSize: 1600, // 100ms chunks for minimal latency (16kHz * 0.1s * 2 bytes)
-    maxAlternatives: 1
+    maxAlternatives: 1,
+    // Enhanced speech context configuration (Requirements 4.1, 4.2, 4.4)
+    enableSpeechContexts: true,
+    speechContextBoost: {
+      yesNoResponses: 20.0,
+      dateTimePatterns: 20.0,
+      timePatterns: 18.0,
+      monthNames: 16.0,
+      ordinalNumbers: 16.0,
+      yearFormats: 14.0,
+      commonResponses: 12.0
+    }
   },
   
   audioSettings: {

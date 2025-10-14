@@ -197,7 +197,48 @@ export class GoogleSpeechManager {
               ],
               boost: 20.0
             },
-            // High priority: Date patterns and month names (Requirement 4.4)
+            // High priority: Specific date patterns with ordinals (Requirement 4.4)
+            // Handles "13th November 2025" style dates with pauses
+            {
+              phrases: [
+                'thirteenth November 2025', '13th November 2025', 'thirteenth November twenty twenty five',
+                'fourteenth December 2024', '14th December 2024', 'fourteenth December twenty twenty four',
+                'twenty first May 2025', '21st May 2025', 'twenty first May twenty twenty five',
+                'first January 2025', '1st January 2025', 'first January twenty twenty five',
+                'second February 2025', '2nd February 2025', 'second February twenty twenty five',
+                'third March 2025', '3rd March 2025', 'third March twenty twenty five',
+                'fourth April 2025', '4th April 2025', 'fourth April twenty twenty five',
+                'fifth May 2025', '5th May 2025', 'fifth May twenty twenty five',
+                'sixth June 2025', '6th June 2025', 'sixth June twenty twenty five',
+                'seventh July 2025', '7th July 2025', 'seventh July twenty twenty five',
+                'eighth August 2025', '8th August 2025', 'eighth August twenty twenty five',
+                'ninth September 2025', '9th September 2025', 'ninth September twenty twenty five',
+                'tenth October 2025', '10th October 2025', 'tenth October twenty twenty five'
+              ],
+              boost: 20.0
+            },
+            // High priority: Date-time combinations with AM/PM (Requirement 4.4)
+            // Handles "13th November 2025 11 AM" style with pauses
+            {
+              phrases: [
+                'thirteenth November 2025 eleven AM', '13th November 2025 11 AM',
+                'thirteenth November 2025 eleven in the morning', '13th November 2025 11 in the morning',
+                'fourteenth December 2024 three PM', '14th December 2024 3 PM',
+                'twenty first May 2025 nine AM', '21st May 2025 9 AM',
+                'first January 2025 ten AM', '1st January 2025 10 AM',
+                'second February 2025 two PM', '2nd February 2025 2 PM',
+                'third March 2025 four PM', '3rd March 2025 4 PM',
+                'fourth April 2025 eight AM', '4th April 2025 8 AM',
+                'fifth May 2025 twelve PM', '5th May 2025 12 PM',
+                'sixth June 2025 one PM', '6th June 2025 1 PM',
+                'seventh July 2025 five PM', '7th July 2025 5 PM',
+                'eighth August 2025 seven AM', '8th August 2025 7 AM',
+                'ninth September 2025 six PM', '9th September 2025 6 PM',
+                'tenth October 2025 eleven PM', '10th October 2025 11 PM'
+              ],
+              boost: 18.0
+            },
+            // High priority: Month names (Requirement 4.4)
             {
               phrases: [
                 'January', 'February', 'March', 'April', 'May', 'June',
@@ -205,32 +246,42 @@ export class GoogleSpeechManager {
               ],
               boost: 18.0
             },
+            // High priority: Ordinal numbers with variations (Requirement 4.4)
             {
               phrases: [
-                'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
-                'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth',
-                'twenty first', 'twenty second', 'twenty third', 'twenty fourth', 'twenty fifth', 'twenty sixth', 'twenty seventh', 'twenty eighth', 'twenty ninth', 'thirtieth', 'thirty first'
+                'first', '1st', 'second', '2nd', 'third', '3rd', 'fourth', '4th', 'fifth', '5th', 
+                'sixth', '6th', 'seventh', '7th', 'eighth', '8th', 'ninth', '9th', 'tenth', '10th',
+                'eleventh', '11th', 'twelfth', '12th', 'thirteenth', '13th', 'fourteenth', '14th', 
+                'fifteenth', '15th', 'sixteenth', '16th', 'seventeenth', '17th', 'eighteenth', '18th', 
+                'nineteenth', '19th', 'twentieth', '20th', 'twenty first', '21st', 'twenty second', '22nd', 
+                'twenty third', '23rd', 'twenty fourth', '24th', 'twenty fifth', '25th', 'twenty sixth', '26th', 
+                'twenty seventh', '27th', 'twenty eighth', '28th', 'twenty ninth', '29th', 'thirtieth', '30th', 
+                'thirty first', '31st'
               ],
               boost: 15.0
             },
-            // Medium priority: Complete date-time phrases
+            // Medium priority: Years in different formats (Requirement 4.4)
             {
               phrases: [
-                'December fourth nineteen ninety one',
-                'twenty first May nineteen ninety one eleven fifteen AM',
-                'second August two thousand twelve three thirty PM',
-                'September nineteenth two thousand twenty five twelve noon'
+                '2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027', '2028', '2029', '2030',
+                'twenty twenty', 'twenty twenty one', 'twenty twenty two', 'twenty twenty three', 
+                'twenty twenty four', 'twenty twenty five', 'twenty twenty six', 'twenty twenty seven',
+                'twenty twenty eight', 'twenty twenty nine', 'twenty thirty',
+                'nineteen ninety one', 'nineteen ninety two', 'nineteen ninety three', 'nineteen ninety four', 
+                'nineteen ninety five', 'nineteen ninety six', 'nineteen ninety seven', 'nineteen ninety eight', 
+                'nineteen ninety nine', 'two thousand', 'two thousand one', 'two thousand two'
               ],
-              boost: 15.0
+              boost: 12.0
             },
-            // Medium priority: Years and time patterns
+            // Medium priority: Time patterns and AM/PM
             {
               phrases: [
-                'nineteen ninety one', 'nineteen ninety two', 'nineteen ninety three', 'nineteen ninety four', 'nineteen ninety five',
-                'two thousand twelve', 'two thousand twenty three', 'two thousand twenty four', 'two thousand twenty five',
-                'eleven fifteen AM', 'eleven fifteen in the morning',
-                'three thirty PM', 'three thirty in the afternoon', 
-                'twelve noon', 'twelve midnight', 'midnight',
+                'eleven AM', '11 AM', 'eleven in the morning', '11 in the morning',
+                'three PM', '3 PM', 'three in the afternoon', '3 in the afternoon',
+                'nine AM', '9 AM', 'nine in the morning', '9 in the morning',
+                'two PM', '2 PM', 'two in the afternoon', '2 in the afternoon',
+                'twelve PM', '12 PM', 'twelve noon', 'noon',
+                'twelve AM', '12 AM', 'twelve midnight', 'midnight',
                 'one o\'clock', 'two o\'clock', 'three o\'clock', 'four o\'clock', 'five o\'clock',
                 'six o\'clock', 'seven o\'clock', 'eight o\'clock', 'nine o\'clock', 'ten o\'clock',
                 'eleven o\'clock', 'twelve o\'clock'
@@ -240,7 +291,7 @@ export class GoogleSpeechManager {
             // Lower priority: Time qualifiers and other responses
             {
               phrases: [
-                'AM', 'PM', 'in the morning', 'in the afternoon', 'in the evening', 'at night',
+                'AM', 'PM', 'a.m.', 'p.m.', 'in the morning', 'in the afternoon', 'in the evening', 'at night',
                 'not applicable', 'N/A', 'not relevant', 'unknown', 'unsure'
               ],
               boost: 10.0

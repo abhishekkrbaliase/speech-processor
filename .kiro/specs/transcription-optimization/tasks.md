@@ -18,8 +18,17 @@
   - Add basic noise suppression to improve audio quality
   - _Requirements: 3.1, 3.2, 3.4_
 
-- [ ] 4. Improve accuracy for "Yes" and date responses - add speech contexts
+- [x] 4. Improve accuracy for "Yes", "No" and date responses - add speech contexts
   - Add Google Speech contexts to boost "yes", "no", "yeah", "yep" recognition
-  - Add speech contexts for common date patterns and month names
+  - Add speech contexts for common date patterns and month names. The dates can be called like "13th November 2025", "13th November 2025 11 AM". Note that there can be pauses between calling out these words
   - Configure enhanced model if available for better accuracy
   - _Requirements: 4.1, 4.2, 4.4_
+
+- [ ] 5. Improve user experience
+  - Disable Debug Tool.
+  - The Overlay size is very big. 
+      - The Font size of text (not patient details) can be reduced. 
+      - Minimise the space taken by overlay by having intuitive buttons much smaller in size
+  - Overlay should have a slider which can make the overlay upto completely transparent
+  - Test button should be removed. This should be handled by current "Pause" button which can initially have text as "Start"
+  - _Requirements: 5.1, 5.2, 5.4_
