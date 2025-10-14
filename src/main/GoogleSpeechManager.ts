@@ -176,42 +176,76 @@ export class GoogleSpeechManager {
           // Enhanced configuration for better accuracy
           enableAutomaticPunctuation: true,
           enableWordTimeOffsets: true, // Enable for better timing
-          model: 'command_and_search', // Optimized for dates and commands
-          useEnhanced: true, // Use enhanced model for better accuracy
+          model: 'latest_short', // Optimized for short responses like yes/no and dates
+          useEnhanced: true, // Use enhanced model for better accuracy (Requirement 4.4)
           // Alternative voices/accents support
           alternativeLanguageCodes: ['en-IN', 'en-CA'], // Indian English, Canadian English
-          // Enhanced speech contexts for better date and time recognition
-          speechContexts: [{
-            phrases: [
-              // Complete date-time phrases (highest priority)
-              'December fourth nineteen ninety one',
-              'twenty first May nineteen ninety one eleven fifteen AM',
-              'second August two thousand twelve three thirty PM',
-              'September nineteenth two thousand twenty five twelve noon',
-              // Date components
-              'January', 'February', 'March', 'April', 'May', 'June',
-              'July', 'August', 'September', 'October', 'November', 'December',
-              // Ordinal numbers with better spacing
-              'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
-              'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth',
-              'twenty first', 'twenty second', 'twenty third', 'twenty fourth', 'twenty fifth', 'twenty sixth', 'twenty seventh', 'twenty eighth', 'twenty ninth', 'thirtieth', 'thirty first',
-              // Years (common patterns)
-              'nineteen ninety one', 'nineteen ninety two', 'nineteen ninety three', 'nineteen ninety four', 'nineteen ninety five',
-              'two thousand twelve', 'two thousand twenty three', 'two thousand twenty four', 'two thousand twenty five',
-              // Time patterns (more specific)
-              'eleven fifteen AM', 'eleven fifteen in the morning',
-              'three thirty PM', 'three thirty in the afternoon', 
-              'twelve noon', 'twelve midnight', 'midnight',
-              'one o\'clock', 'two o\'clock', 'three o\'clock', 'four o\'clock', 'five o\'clock',
-              'six o\'clock', 'seven o\'clock', 'eight o\'clock', 'nine o\'clock', 'ten o\'clock',
-              'eleven o\'clock', 'twelve o\'clock',
-              // Time qualifiers
-              'AM', 'PM', 'in the morning', 'in the afternoon', 'in the evening', 'at night',
-              // Simple responses
-              'yes', 'no', 'not applicable'
-            ],
-            boost: 20.0 // Higher boost for complete phrases
-          }],
+          // Enhanced speech contexts for better accuracy (Requirements 4.1, 4.2, 4.4)
+          speechContexts: [
+            // High priority: Yes/No responses with variations (Requirement 4.2)
+            {
+              phrases: [
+                'yes', 'yeah', 'yep', 'yup', 'affirmative', 'correct', 'right', 'true',
+                'absolutely', 'definitely', 'certainly', 'of course', 'sure', 'ok', 'okay'
+              ],
+              boost: 20.0
+            },
+            {
+              phrases: [
+                'no', 'nope', 'negative', 'incorrect', 'wrong', 'false', 'nah',
+                'never', 'not at all', 'definitely not', 'certainly not'
+              ],
+              boost: 20.0
+            },
+            // High priority: Date patterns and month names (Requirement 4.4)
+            {
+              phrases: [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+              ],
+              boost: 18.0
+            },
+            {
+              phrases: [
+                'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
+                'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth',
+                'twenty first', 'twenty second', 'twenty third', 'twenty fourth', 'twenty fifth', 'twenty sixth', 'twenty seventh', 'twenty eighth', 'twenty ninth', 'thirtieth', 'thirty first'
+              ],
+              boost: 15.0
+            },
+            // Medium priority: Complete date-time phrases
+            {
+              phrases: [
+                'December fourth nineteen ninety one',
+                'twenty first May nineteen ninety one eleven fifteen AM',
+                'second August two thousand twelve three thirty PM',
+                'September nineteenth two thousand twenty five twelve noon'
+              ],
+              boost: 15.0
+            },
+            // Medium priority: Years and time patterns
+            {
+              phrases: [
+                'nineteen ninety one', 'nineteen ninety two', 'nineteen ninety three', 'nineteen ninety four', 'nineteen ninety five',
+                'two thousand twelve', 'two thousand twenty three', 'two thousand twenty four', 'two thousand twenty five',
+                'eleven fifteen AM', 'eleven fifteen in the morning',
+                'three thirty PM', 'three thirty in the afternoon', 
+                'twelve noon', 'twelve midnight', 'midnight',
+                'one o\'clock', 'two o\'clock', 'three o\'clock', 'four o\'clock', 'five o\'clock',
+                'six o\'clock', 'seven o\'clock', 'eight o\'clock', 'nine o\'clock', 'ten o\'clock',
+                'eleven o\'clock', 'twelve o\'clock'
+              ],
+              boost: 12.0
+            },
+            // Lower priority: Time qualifiers and other responses
+            {
+              phrases: [
+                'AM', 'PM', 'in the morning', 'in the afternoon', 'in the evening', 'at night',
+                'not applicable', 'N/A', 'not relevant', 'unknown', 'unsure'
+              ],
+              boost: 10.0
+            }
+          ],
           // Profanity filter off for medical terms
           profanityFilter: false
         },
@@ -328,7 +362,7 @@ export class GoogleSpeechManager {
   }
 
   /**
-   * Check if text represents a positive response
+   * Check if text represents a positive response (Enhanced for Requirement 4.2)
    */
   private isYesResponse(text: string): boolean {
     const yesPatterns = [
@@ -340,7 +374,7 @@ export class GoogleSpeechManager {
   }
 
   /**
-   * Check if text represents a negative response
+   * Check if text represents a negative response (Enhanced for Requirement 4.2)
    */
   private isNoResponse(text: string): boolean {
     const noPatterns = [
@@ -418,7 +452,7 @@ export class GoogleSpeechManager {
   }
 
   /**
-   * Calculate adjusted confidence based on response characteristics
+   * Calculate adjusted confidence based on response characteristics (Enhanced for Requirements 4.1, 4.2)
    */
   private calculateAdjustedConfidence(
     text: string, 
@@ -426,10 +460,25 @@ export class GoogleSpeechManager {
     originalConfidence: number
   ): number {
     let adjustedConfidence = originalConfidence;
+    const normalizedText = text.toLowerCase().trim();
     
-    // Boost confidence for clear yes/no responses
-    if (responseType === ResponseType.YES || responseType === ResponseType.NO) {
-      if (['yes', 'no', 'yeah', 'nope'].includes(text)) {
+    // Boost confidence for speech context matches (Requirement 4.1)
+    
+    // High boost for exact yes/no matches (Requirement 4.2)
+    const exactYesMatches = ['yes', 'yeah', 'yep', 'yup', 'affirmative', 'correct', 'right', 'true', 'absolutely', 'definitely', 'certainly', 'of course', 'sure', 'ok', 'okay'];
+    const exactNoMatches = ['no', 'nope', 'negative', 'incorrect', 'wrong', 'false', 'nah', 'never', 'not at all', 'definitely not', 'certainly not'];
+    
+    if (responseType === ResponseType.YES && exactYesMatches.includes(normalizedText)) {
+      adjustedConfidence = Math.min(adjustedConfidence + 0.15, 1.0);
+    } else if (responseType === ResponseType.NO && exactNoMatches.includes(normalizedText)) {
+      adjustedConfidence = Math.min(adjustedConfidence + 0.15, 1.0);
+    }
+    
+    // Boost confidence for date/time responses with month names (Requirement 4.4)
+    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+    if (responseType === ResponseType.DATE_TIME) {
+      const hasMonth = monthNames.some(month => normalizedText.includes(month));
+      if (hasMonth) {
         adjustedConfidence = Math.min(adjustedConfidence + 0.1, 1.0);
       }
     }
@@ -450,13 +499,14 @@ export class GoogleSpeechManager {
   }
 
   /**
-   * Get model information
+   * Get model information (Enhanced for Requirement 4.4)
    */
-  getModelInfo(): { name: string; version: string; provider: string } {
+  getModelInfo(): { name: string; version: string; provider: string; enhanced: boolean } {
     return {
       name: 'Google Speech-to-Text',
       version: 'latest_short',
-      provider: 'Google Cloud'
+      provider: 'Google Cloud',
+      enhanced: true // Using enhanced model for better accuracy
     };
   }
 

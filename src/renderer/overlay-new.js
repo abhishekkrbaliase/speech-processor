@@ -60,12 +60,14 @@ function setupEventListeners() {
     var resetBtn = document.getElementById('reset-btn');
     var nextBtn = document.getElementById('next-btn');
     var pauseBtn = document.getElementById('pause-btn');
+    var exportBtn = document.getElementById('export-btn');
     var testBtn = document.getElementById('test-btn');
 
     console.log('🔍 OVERLAY-NEW: Button elements found:', {
         resetBtn: !!resetBtn,
         nextBtn: !!nextBtn,
         pauseBtn: !!pauseBtn,
+        exportBtn: !!exportBtn,
         testBtn: !!testBtn
     });
 
@@ -93,6 +95,15 @@ function setupEventListeners() {
             console.log('⏸️ OVERLAY-NEW: PAUSE BUTTON CLICKED!');
             console.log('📍 Timestamp:', new Date().toISOString());
             handlePause();
+        });
+    }
+
+    // Export button
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            console.log('📤 OVERLAY-NEW: EXPORT BUTTON CLICKED!');
+            console.log('📍 Timestamp:', new Date().toISOString());
+            showExportDialog();
         });
     }
 
@@ -455,6 +466,16 @@ function processAudioBufferWithQualityCheck() {
                     
                     console.log('✅ OVERLAY-NEW: Transcribed:', text, '(' + Math.round(confidence * 100) + '% confidence)');
                     
+                    // Save the response to current state
+                    overlayState.currentResponse = {
+                        text: text,
+                        confidence: confidence,
+                        timestamp: new Date()
+                    };
+                    
+                    // Save response to DataManager
+                    saveCurrentResponse(text, confidence);
+                    
                     // Update UI with result
                     var responseDisplay = document.getElementById('response-display');
                     if (responseDisplay) {
@@ -555,6 +576,16 @@ function processAudioBuffer() {
                     
                     console.log('✅ OVERLAY-NEW: Transcribed:', text, '(' + Math.round(confidence * 100) + '% confidence)');
                     
+                    // Save the response to current state
+                    overlayState.currentResponse = {
+                        text: text,
+                        confidence: confidence,
+                        timestamp: new Date()
+                    };
+                    
+                    // Save response to DataManager
+                    saveCurrentResponse(text, confidence);
+                    
                     // Update UI with result
                     var responseDisplay = document.getElementById('response-display');
                     if (responseDisplay) {
@@ -647,6 +678,12 @@ function handleReset() {
 function handleNext() {
     console.log('▶️ OVERLAY-NEW: Moving to next question...');
     
+    // Save current response if available before moving to next question
+    if (overlayState.currentResponse && overlayState.currentResponse.text) {
+        console.log('💾 OVERLAY-NEW: Saving current response before moving to next question');
+        saveCurrentResponse(overlayState.currentResponse.text, overlayState.currentResponse.confidence);
+    }
+    
     // Move to next question
     overlayState.currentQuestionIndex++;
     
@@ -658,7 +695,25 @@ function handleNext() {
         // Check if we're done with all patients
         if (overlayState.currentPatientIndex >= overlayState.patients.length) {
             console.log('🎉 OVERLAY-NEW: All questionnaires completed!');
-            alert('All questionnaires completed!');
+            console.log('📊 OVERLAY-NEW: Current state:', {
+                currentPatientIndex: overlayState.currentPatientIndex,
+                totalPatients: overlayState.patients.length,
+                currentQuestionIndex: overlayState.currentQuestionIndex,
+                totalQuestions: overlayState.questions.length
+            });
+            
+            // Stop audio capture since we're done
+            console.log('🛑 OVERLAY-NEW: Stopping audio capture - all questionnaires completed');
+            stopBrowserAudioCapture();
+            
+            try {
+                console.log('📤 OVERLAY-NEW: About to call showExportDialog...');
+                showExportDialog();
+                console.log('✅ OVERLAY-NEW: showExportDialog completed');
+            } catch (error) {
+                console.error('❌ OVERLAY-NEW: Error in showExportDialog:', error);
+                alert('All questionnaires completed! There was an error showing the export dialog.');
+            }
             return;
         }
     }
@@ -701,5 +756,338 @@ window.addEventListener('error', function(event) {
 window.addEventListener('unhandledrejection', function(event) {
     console.error('❌ OVERLAY-NEW: Unhandled promise rejection:', event.reason);
 });
+
+// Response saving functionality
+function saveCurrentResponse(text, confidence) {
+    try {
+        console.log('💾 OVERLAY-NEW: Saving response:', text);
+        
+        if (!window.dataManager) {
+            console.error('❌ OVERLAY-NEW: DataManager not available');
+            return;
+        }
+        
+        if (overlayState.patients.length === 0 || overlayState.questions.length === 0) {
+            console.error('❌ OVERLAY-NEW: No patients or questions loaded');
+            return;
+        }
+        
+        // Get current patient and question
+        var currentPatient = overlayState.patients[overlayState.currentPatientIndex];
+        var currentQuestion = overlayState.questions[overlayState.currentQuestionIndex];
+        
+        if (!currentPatient || !currentQuestion) {
+            console.error('❌ OVERLAY-NEW: Current patient or question not found');
+            return;
+        }
+        
+        // Create response object
+        var response = {
+            questionId: currentQuestion.id,
+            patientMrn: currentPatient.mrn,
+            rawText: text,
+            parsedValue: text, // For now, use raw text as parsed value
+            responseType: 'any', // Default type
+            confidence: confidence,
+            timestamp: new Date()
+        };
+        
+        console.log('💾 OVERLAY-NEW: Saving response object:', response);
+        
+        // Save the response using the correct DataManager API method
+        window.dataManager.addResponse(response).then(function() {
+            console.log('✅ OVERLAY-NEW: Response saved successfully');
+        }).catch(function(error) {
+            console.error('❌ OVERLAY-NEW: Error saving response:', error);
+        });
+        
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Error in saveCurrentResponse:', error);
+    }
+}
+
+// Response saving functionality
+function saveCurrentResponse(text, confidence) {
+    try {
+        console.log('💾 OVERLAY-NEW: Saving response:', text);
+        
+        if (!window.dataManager) {
+            console.error('❌ OVERLAY-NEW: DataManager not available');
+            return;
+        }
+        
+        if (overlayState.patients.length === 0 || overlayState.questions.length === 0) {
+            console.error('❌ OVERLAY-NEW: No patients or questions loaded');
+            return;
+        }
+        
+        // Get current patient and question
+        var currentPatient = overlayState.patients[overlayState.currentPatientIndex];
+        var currentQuestion = overlayState.questions[overlayState.currentQuestionIndex];
+        
+        if (!currentPatient || !currentQuestion) {
+            console.error('❌ OVERLAY-NEW: Current patient or question not found');
+            return;
+        }
+        
+        // Create response object using the correct ProcessedResponse interface
+        var response = {
+            questionId: currentQuestion.id,
+            patientMrn: currentPatient.mrn,
+            rawText: text,
+            parsedValue: text, // For now, use raw text as parsed value
+            responseType: 'unclear', // Default type from ResponseType enum
+            confidence: confidence,
+            timestamp: new Date()
+        };
+        
+        console.log('💾 OVERLAY-NEW: Saving response object:', response);
+        
+        // Save the response using the correct DataManager API method
+        window.dataManager.addResponse(response).then(function() {
+            console.log('✅ OVERLAY-NEW: Response saved successfully');
+        }).catch(function(error) {
+            console.error('❌ OVERLAY-NEW: Error saving response:', error);
+        });
+        
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Error in saveCurrentResponse:', error);
+    }
+}
+
+// Export functionality
+function showExportDialog() {
+    console.log('📤 OVERLAY-NEW: Showing export dialog...');
+    console.log('📤 OVERLAY-NEW: Function called successfully');
+    console.log('📤 OVERLAY-NEW: Checking window.exportManager availability:', !!window.exportManager);
+    console.log('📤 OVERLAY-NEW: Checking window.dataManager availability:', !!window.dataManager);
+    
+    try {
+        console.log('📤 OVERLAY-NEW: Creating export dialog...');
+        // Create export dialog overlay
+        var exportDialog = createExportDialog();
+        console.log('📤 OVERLAY-NEW: Export dialog created:', !!exportDialog);
+        
+        console.log('📤 OVERLAY-NEW: Appending to document body...');
+        document.body.appendChild(exportDialog);
+        console.log('📤 OVERLAY-NEW: Dialog appended to body');
+        
+        // Show the dialog
+        console.log('📤 OVERLAY-NEW: Setting display to flex...');
+        exportDialog.style.display = 'flex';
+        console.log('📤 OVERLAY-NEW: Dialog should now be visible');
+        
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Error showing export dialog:', error);
+        console.error('❌ OVERLAY-NEW: Error stack:', error.stack);
+        // Fallback to simple alert
+        alert('All questionnaires completed! Export functionality will be available soon.');
+    }
+}
+
+function createExportDialog() {
+    console.log('🏗️ OVERLAY-NEW: Creating export dialog element...');
+    var dialog = document.createElement('div');
+    dialog.id = 'export-dialog';
+    dialog.style.cssText = 
+        'position: fixed;' +
+        'top: 0;' +
+        'left: 0;' +
+        'width: 100%;' +
+        'height: 100%;' +
+        'background: rgba(0, 0, 0, 0.8);' +
+        'backdrop-filter: blur(10px);' +
+        'display: none;' +
+        'align-items: center;' +
+        'justify-content: center;' +
+        'z-index: 1000;';
+    
+    var dialogContent = document.createElement('div');
+    dialogContent.style.cssText = 
+        'background: rgba(30, 30, 30, 0.95);' +
+        'border: 1px solid rgba(255, 255, 255, 0.2);' +
+        'border-radius: 12px;' +
+        'padding: 30px;' +
+        'max-width: 500px;' +
+        'width: 90%;' +
+        'color: white;' +
+        'text-align: center;' +
+        'box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);';
+    
+    dialogContent.innerHTML = 
+        '<h2 style="margin: 0 0 20px 0; color: #4caf50; font-size: 24px;">' +
+        '🎉 All Questionnaires Completed!' +
+        '</h2>' +
+        '<p style="margin: 0 0 25px 0; color: rgba(255, 255, 255, 0.8); font-size: 16px; line-height: 1.5;">' +
+        'All questions for all patients have been completed successfully.<br>' +
+        'Would you like to export the captured answers?' +
+        '</p>' +
+        '<div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">' +
+        '<button id="export-csv-btn" style="' +
+        'background: rgba(76, 175, 80, 0.4);' +
+        'border: 1px solid rgba(76, 175, 80, 0.6);' +
+        'border-radius: 8px;' +
+        'color: white;' +
+        'padding: 12px 24px;' +
+        'font-size: 14px;' +
+        'font-weight: 500;' +
+        'cursor: pointer;' +
+        'transition: all 0.2s ease;' +
+        'min-width: 120px;' +
+        '">' +
+        '📊 Export CSV' +
+        '</button>' +
+        '<button id="export-later-btn" style="' +
+        'background: rgba(255, 255, 255, 0.15);' +
+        'border: 1px solid rgba(255, 255, 255, 0.2);' +
+        'border-radius: 8px;' +
+        'color: white;' +
+        'padding: 12px 24px;' +
+        'font-size: 14px;' +
+        'font-weight: 500;' +
+        'cursor: pointer;' +
+        'transition: all 0.2s ease;' +
+        'min-width: 120px;' +
+        '">' +
+        'Later' +
+        '</button>' +
+        '</div>' +
+        '<div id="export-status" style="' +
+        'margin-top: 20px;' +
+        'padding: 10px;' +
+        'border-radius: 6px;' +
+        'font-size: 14px;' +
+        'display: none;' +
+        '"></div>';
+    
+    dialog.appendChild(dialogContent);
+    
+    // Add event listeners
+    var exportCsvBtn = dialogContent.querySelector('#export-csv-btn');
+    var exportLaterBtn = dialogContent.querySelector('#export-later-btn');
+    var exportStatus = dialogContent.querySelector('#export-status');
+    
+    exportCsvBtn.addEventListener('click', function() {
+        console.log('📊 OVERLAY-NEW: Export CSV button clicked');
+        handleExportCSV(exportStatus);
+    });
+    
+    exportLaterBtn.addEventListener('click', function() {
+        console.log('⏰ OVERLAY-NEW: Export later button clicked');
+        closeExportDialog();
+    });
+    
+    // Add hover effects
+    exportCsvBtn.addEventListener('mouseenter', function() {
+        exportCsvBtn.style.background = 'rgba(76, 175, 80, 0.6)';
+        exportCsvBtn.style.transform = 'translateY(-2px)';
+    });
+    
+    exportCsvBtn.addEventListener('mouseleave', function() {
+        exportCsvBtn.style.background = 'rgba(76, 175, 80, 0.4)';
+        exportCsvBtn.style.transform = 'translateY(0)';
+    });
+    
+    exportLaterBtn.addEventListener('mouseenter', function() {
+        exportLaterBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+        exportLaterBtn.style.transform = 'translateY(-2px)';
+    });
+    
+    exportLaterBtn.addEventListener('mouseleave', function() {
+        exportLaterBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+        exportLaterBtn.style.transform = 'translateY(0)';
+    });
+    
+    return dialog;
+}
+
+function handleExportCSV(statusElement) {
+    try {
+        console.log('📤 OVERLAY-NEW: Starting CSV export...');
+        
+        // Show loading status
+        statusElement.style.display = 'block';
+        statusElement.style.background = 'rgba(33, 150, 243, 0.2)';
+        statusElement.style.color = '#2196f3';
+        statusElement.textContent = '⏳ Preparing export...';
+        
+        if (!window.exportManager) {
+            console.warn('⚠️ OVERLAY-NEW: Export manager not available, showing simple dialog');
+            statusElement.style.display = 'block';
+            statusElement.style.background = 'rgba(255, 152, 0, 0.2)';
+            statusElement.style.color = '#ff9800';
+            statusElement.textContent = '⚠️ Export functionality not fully available. Please use the main app export feature.';
+            return;
+        }
+        
+        // Configure export settings for the task requirements
+        // The task specifies: CSV format with MRN number, Question Number, and Answer captured
+        var exportSettings = {
+            format: 'csv',
+            includeTimestamps: true,
+            includeConfidence: true,
+            includeRawText: true,
+            includePatientDetails: true,
+            includeQuestionDetails: true,
+            sortBy: 'patient' // Sort by patient (MRN) first
+        };
+        
+        console.log('⚙️ OVERLAY-NEW: Export settings:', exportSettings);
+        
+        // Update status
+        statusElement.textContent = '📊 Exporting data...';
+        
+        // Use the export manager to show file dialog and export
+        window.exportManager.exportWithDialog(exportSettings).then(function(exportResult) {
+            console.log('📋 OVERLAY-NEW: Export result:', exportResult);
+            
+            if (exportResult.success) {
+                // Show success status
+                statusElement.style.background = 'rgba(76, 175, 80, 0.2)';
+                statusElement.style.color = '#4caf50';
+                statusElement.innerHTML = 
+                    '✅ Export completed successfully!<br>' +
+                    '<small>File: ' + exportResult.filePath + '<br>' +
+                    'Records: ' + exportResult.recordCount + ' | Size: ' + (exportResult.fileSize / 1024).toFixed(1) + ' KB</small>';
+                
+                // Auto-close dialog after 3 seconds
+                setTimeout(function() {
+                    closeExportDialog();
+                }, 3000);
+                
+            } else {
+                // Show error status
+                statusElement.style.background = 'rgba(244, 67, 54, 0.2)';
+                statusElement.style.color = '#f44336';
+                statusElement.textContent = '❌ Export failed: ' + exportResult.error;
+            }
+        }).catch(function(error) {
+            console.error('❌ OVERLAY-NEW: Export promise failed:', error);
+            
+            // Show error status
+            statusElement.style.display = 'block';
+            statusElement.style.background = 'rgba(244, 67, 54, 0.2)';
+            statusElement.style.color = '#f44336';
+            statusElement.textContent = '❌ Export error: ' + error.message;
+        });
+        
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Export error:', error);
+        
+        // Show error status
+        statusElement.style.display = 'block';
+        statusElement.style.background = 'rgba(244, 67, 54, 0.2)';
+        statusElement.style.color = '#f44336';
+        statusElement.textContent = '❌ Export error: ' + error.message;
+    }
+}
+
+function closeExportDialog() {
+    var dialog = document.getElementById('export-dialog');
+    if (dialog) {
+        dialog.remove();
+    }
+    console.log('🚪 OVERLAY-NEW: Export dialog closed');
+}
 
 console.log('🎯 OVERLAY-NEW: Script loaded completely');

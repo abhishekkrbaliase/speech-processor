@@ -6,6 +6,7 @@
 import { SpeechClient } from '@google-cloud/speech';
 import { ResponseType, ProcessedResponse, AppError } from '../shared/types';
 import { logger } from '../shared/logger';
+import { correctTranscription, validateDateTime } from '../shared/transcription-utils';
 
 export interface GoogleSpeechStreamingConfig {
   // Authentication options
@@ -379,25 +380,72 @@ class GoogleStreamingSession implements StreamingSession {
           useEnhanced: true, // Use enhanced model for better accuracy
           // Enhanced configuration for better accuracy
           alternativeLanguageCodes: ['en-IN', 'en-CA'], // Support multiple English accents
-          speechContexts: [{
-            phrases: [
-              // Yes/No responses (high priority)
-              'yes', 'no', 'yeah', 'nope', 'yep', 'yup', 'sure', 'correct', 'right', 'true',
-              'affirmative', 'negative', 'ok', 'okay', 'alright', 'definitely', 'absolutely',
-              // Date components
-              'January', 'February', 'March', 'April', 'May', 'June',
-              'July', 'August', 'September', 'October', 'November', 'December',
-              'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
-              'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth',
-              'twenty first', 'twenty second', 'twenty third', 'twenty fourth', 'twenty fifth', 'twenty sixth', 'twenty seventh', 'twenty eighth', 'twenty ninth', 'thirtieth', 'thirty first',
-              // Time components
-              'AM', 'PM', 'morning', 'afternoon', 'evening', 'night',
-              'eleven fifteen', 'three thirty', 'twelve noon', 'midnight',
-              // Not applicable
-              'not applicable', 'N/A', 'not relevant'
-            ],
-            boost: 20.0 // Higher boost for critical responses
-          }],
+          speechContexts: [
+            // High priority: Yes responses with variations (Requirement 4.2)
+            {
+              phrases: [
+                'yes', 'yeah', 'yep', 'yup', 'affirmative', 'correct', 'right', 'true',
+                'absolutely', 'definitely', 'certainly', 'of course', 'sure', 'ok', 'okay', 'alright'
+              ],
+              boost: 20.0
+            },
+            // High priority: No responses with variations (Requirement 4.2)
+            {
+              phrases: [
+                'no', 'nope', 'negative', 'incorrect', 'wrong', 'false', 'nah',
+                'never', 'not at all', 'definitely not', 'certainly not'
+              ],
+              boost: 20.0
+            },
+            // High priority: Time patterns (to fix "11, 4:00 p.m." issue)
+            {
+              phrases: [
+                // Specific time patterns that are commonly misrecognized
+                'eleven oh four', 'eleven zero four', '11:04', 'eleven four',
+                'ten oh five', 'ten zero five', '10:05', 'ten five',
+                'twelve oh one', 'twelve zero one', '12:01', 'twelve one',
+                'nine thirty', '9:30', 'nine oh five', '9:05',
+                // AM/PM patterns
+                'AM', 'PM', 'a.m.', 'p.m.', 'in the morning', 'in the afternoon', 'in the evening',
+                // Common time expressions
+                'o\'clock', 'fifteen', 'thirty', 'forty five', 'quarter past', 'half past', 'quarter to'
+              ],
+              boost: 18.0
+            },
+            // Medium priority: Date components - months (Requirement 4.4)
+            {
+              phrases: [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+              ],
+              boost: 15.0
+            },
+            // Medium priority: Date components - ordinal numbers (Requirement 4.4)
+            {
+              phrases: [
+                'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth',
+                'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth',
+                'twenty first', 'twenty second', 'twenty third', 'twenty fourth', 'twenty fifth', 'twenty sixth', 'twenty seventh', 'twenty eighth', 'twenty ninth', 'thirtieth', 'thirty first'
+              ],
+              boost: 15.0
+            },
+            // Medium priority: Years and numbers
+            {
+              phrases: [
+                '2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027', '2028', '2029', '2030',
+                'nineteen ninety', 'nineteen ninety one', 'nineteen ninety two', 'nineteen ninety three', 'nineteen ninety four', 'nineteen ninety five',
+                'two thousand', 'two thousand one', 'two thousand two', 'two thousand three', 'two thousand four', 'two thousand five'
+              ],
+              boost: 12.0
+            },
+            // Lower priority: Common responses
+            {
+              phrases: [
+                'not applicable', 'N/A', 'not relevant', 'unknown', 'unsure', 'maybe', 'sometimes', 'never', 'always'
+              ],
+              boost: 10.0
+            }
+          ],
           profanityFilter: false
         },
         interimResults: this.config.enableInterimResults,
@@ -524,10 +572,37 @@ class GoogleStreamingSession implements StreamingSession {
         })) || [];
 
         if (result.isFinal) {
-          // Final result
+          // Apply post-processing corrections to improve accuracy
+          const correctionResult = correctTranscription(alternative.transcript, alternative.confidence || 0);
+          
+          // Log corrections if any were made
+          if (correctionResult.corrections.length > 0) {
+            logger.info('🔧 TRANSCRIPTION CORRECTIONS APPLIED', {
+              original: correctionResult.original,
+              corrected: correctionResult.corrected,
+              corrections: correctionResult.corrections
+            }, 'GOOGLE-SPEECH');
+            console.log('🔧 TRANSCRIPTION CORRECTIONS:', {
+              original: correctionResult.original,
+              corrected: correctionResult.corrected,
+              corrections: correctionResult.corrections
+            });
+          }
+          
+          // Validate date/time format
+          const validation = validateDateTime(correctionResult.corrected);
+          if (!validation.isValid) {
+            logger.warn('⚠️ DATE/TIME VALIDATION ISSUES', {
+              text: correctionResult.corrected,
+              suggestions: validation.suggestions,
+              confidence: validation.confidence
+            }, 'GOOGLE-SPEECH');
+          }
+          
+          // Final result with corrections applied
           const finalResult: FinalResult = {
-            transcript: alternative.transcript,
-            confidence: alternative.confidence || 0,
+            transcript: correctionResult.corrected,
+            confidence: (alternative.confidence || 0) * validation.confidence,
             words,
             alternatives: result.alternatives?.slice(1).map((alt: any) => ({
               transcript: alt.transcript,
@@ -557,9 +632,16 @@ class GoogleStreamingSession implements StreamingSession {
             console.warn('⚠️ GOOGLE SPEECH: No final result callback registered');
           }
         } else {
+          // Apply light corrections to partial results (less aggressive to avoid flickering)
+          let correctedTranscript = alternative.transcript;
+          
+          // Only apply basic time format corrections for partial results
+          correctedTranscript = correctedTranscript.replace(/(\d{1,2}),\s*(\d{1,2}):00\s*(p\.?m\.?|a\.?m\.?)/gi, 
+            (match: string, hours: string, minutes: string, ampm: string) => `${hours}:${minutes.padStart(2, '0')} ${ampm.toUpperCase().replace(/\./g, '')}`);
+          
           // Partial/interim result
           const partialResult: PartialResult = {
-            transcript: alternative.transcript,
+            transcript: correctedTranscript,
             confidence: alternative.confidence || 0,
             isFinal: false,
             stability: result.stability || 0,

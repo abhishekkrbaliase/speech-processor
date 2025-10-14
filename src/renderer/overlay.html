@@ -136,13 +136,59 @@
             border-color: rgba(76, 175, 80, 0.6);
         }
 
+        .control-button.recording {
+            background: rgba(244, 67, 54, 0.4);
+            border-color: rgba(244, 67, 54, 0.6);
+            animation: recordingPulse 1.5s infinite;
+        }
+
+        .control-button.stopped {
+            background: rgba(76, 175, 80, 0.4);
+            border-color: rgba(76, 175, 80, 0.6);
+        }
+
         .listening {
             animation: pulse 1.5s infinite;
+        }
+
+        .recording-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #f44336;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: recordingBlink 1s infinite;
+        }
+
+        .stopped-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+            margin-right: 6px;
         }
 
         @keyframes pulse {
             0%, 100% { opacity: 0.7; }
             50% { opacity: 1; }
+        }
+
+        @keyframes recordingPulse {
+            0%, 100% { 
+                background: rgba(244, 67, 54, 0.4);
+                transform: scale(1);
+            }
+            50% { 
+                background: rgba(244, 67, 54, 0.6);
+                transform: scale(1.02);
+            }
+        }
+
+        @keyframes recordingBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
         }
     </style>
 </head>
@@ -174,7 +220,11 @@
             <button class="control-button danger" id="reset-btn">🔄 Reset</button>
             <button class="control-button primary" id="next-btn">▶️ Next</button>
             <button class="control-button" id="pause-btn">⏸️ Pause</button>
-            <button class="control-button test" id="test-btn">🧪 Test</button>
+            <button class="control-button" id="export-btn">📤 Export</button>
+            <button class="control-button test" id="test-export-btn">🧪 Test Export</button>
+            <button class="control-button recording" id="recording-btn">
+                <span class="recording-indicator"></span>Stop
+            </button>
         </div>
     </div>
 
@@ -200,11 +250,12 @@
             currentPatientIndex: 0,
             currentQuestionIndex: 0,
             currentResponse: null,
-            isListening: false,
+            isRecording: false,
             isPaused: false,
             liveTranscriptionActive: false,
             lastPartialResult: null,
-            lastFinalResult: null
+            lastFinalResult: null,
+            autoStarted: false
         };
 
         // Initialize when DOM is ready
@@ -216,6 +267,10 @@
                 setupEventListeners();
                 setupLiveTranscriptionListeners();
                 updateDisplay();
+                
+                // Auto-start recording when overlay loads (Requirement 2.1)
+                await autoStartRecording();
+                
                 console.log('🎉 OVERLAY: Initialization complete');
             } catch (error) {
                 console.error('❌ OVERLAY: Initialization failed:', error);
@@ -237,6 +292,63 @@
                 });
             } else {
                 console.warn('⚠️ OVERLAY: DataManager not available');
+            }
+        }
+
+        async function autoStartRecording() {
+            console.log('🎬 OVERLAY: Auto-starting recording (Requirement 2.1)...');
+            
+            try {
+                if (window.electronAPI) {
+                    // Initialize and start live transcription automatically
+                    const initResult = await window.electronAPI.initializeLiveTranscription();
+                    console.log('📊 Auto-start: Live transcription init result:', initResult);
+                    
+                    const streamResult = await window.electronAPI.startLiveTranscriptionStreaming();
+                    console.log('📊 Auto-start: Streaming start result:', streamResult);
+                    
+                    const audioResult = await window.electronAPI.startAudioCapture({
+                        sampleRate: 16000,
+                        channels: 1,
+                        bufferSize: 1600 // 100ms chunks for low latency
+                    });
+                    console.log('📊 Auto-start: Audio capture result:', audioResult);
+                    
+                    // Set up automatic audio forwarding to live transcription
+                    window.electronAPI.onAudioDetected((audioBuffer) => {
+                        // Forward audio to live transcription
+                        window.electronAPI.sendAudioToLiveTranscription(audioBuffer)
+                            .then(result => {
+                                if (!result.success) {
+                                    console.warn('⚠️ OVERLAY: Failed to send audio to live transcription:', result.error);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('❌ OVERLAY: Error sending audio to live transcription:', error);
+                            });
+                    });
+                    
+                    // Update state and UI
+                    overlayState.isRecording = true;
+                    overlayState.liveTranscriptionActive = true;
+                    overlayState.autoStarted = true;
+                    
+                    updateRecordingButtonState();
+                    updateStatusDisplay();
+                    
+                    console.log('🎉 OVERLAY: Auto-start recording completed successfully');
+                } else {
+                    console.error('❌ OVERLAY: ElectronAPI not available for auto-start');
+                }
+            } catch (error) {
+                console.error('❌ OVERLAY: Auto-start recording failed:', error);
+                
+                // Update UI to show error state
+                const responseDisplay = document.getElementById('response-display');
+                if (responseDisplay) {
+                    responseDisplay.textContent = `Auto-start failed: ${error.message}`;
+                    responseDisplay.style.color = '#f44336';
+                }
             }
         }
 
@@ -294,13 +406,17 @@
             const resetBtn = document.getElementById('reset-btn');
             const nextBtn = document.getElementById('next-btn');
             const pauseBtn = document.getElementById('pause-btn');
-            const testBtn = document.getElementById('test-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const testExportBtn = document.getElementById('test-export-btn');
+            const recordingBtn = document.getElementById('recording-btn');
 
             console.log('🔍 OVERLAY: Button elements found:', {
                 resetBtn: !!resetBtn,
                 nextBtn: !!nextBtn,
                 pauseBtn: !!pauseBtn,
-                testBtn: !!testBtn
+                exportBtn: !!exportBtn,
+                testExportBtn: !!testExportBtn,
+                recordingBtn: !!recordingBtn
             });
 
             // Reset button
@@ -330,36 +446,43 @@
                 });
             }
 
-            // Test button - MOST IMPORTANT
-            if (testBtn) {
-                // Add simple click handler first
-                testBtn.addEventListener('click', function() {
-                    console.log('🧪 OVERLAY: TEST BUTTON CLICKED!');
+            // Export button
+            if (exportBtn) {
+                exportBtn.addEventListener('click', () => {
+                    console.log('📤 OVERLAY: EXPORT BUTTON CLICKED!');
                     console.log('📍 Timestamp:', new Date().toISOString());
-                    console.log('🔍 Current State:', overlayState);
-                    
-                    // Simple test without async
-                    const responseDisplay = document.getElementById('response-display');
-                    if (responseDisplay) {
-                        responseDisplay.textContent = 'Starting live transcription test...';
-                        responseDisplay.style.color = '#4CAF50';
-                    }
-                    
-                    // Then call the full test
-                    handleTest();
+                    showExportDialog();
                 });
-                console.log('✅ OVERLAY: Test button event listener attached');
-                
-                // Verify the button is clickable
-                console.log('🔍 OVERLAY: Test button details:', {
-                    id: testBtn.id,
-                    tagName: testBtn.tagName,
-                    textContent: testBtn.textContent,
-                    disabled: testBtn.disabled,
-                    style: testBtn.style.display
+            }
+
+            // Test Export button
+            if (testExportBtn) {
+                testExportBtn.addEventListener('click', () => {
+                    console.log('🧪 OVERLAY: TEST EXPORT BUTTON CLICKED!');
+                    console.log('📍 Timestamp:', new Date().toISOString());
+                    
+                    // Force trigger export dialog for testing
+                    console.log('🧪 OVERLAY: Forcing export dialog...');
+                    showExportDialog().then(() => {
+                        console.log('🧪 OVERLAY: Test export dialog completed');
+                    }).catch(error => {
+                        console.error('🧪 OVERLAY: Test export dialog failed:', error);
+                    });
                 });
+            }
+
+            // Recording button - Start/Stop toggle (Requirements 2.2, 2.3)
+            if (recordingBtn) {
+                recordingBtn.addEventListener('click', function() {
+                    console.log('🎤 OVERLAY: RECORDING BUTTON CLICKED!');
+                    console.log('📍 Timestamp:', new Date().toISOString());
+                    console.log('🔍 Current recording state:', overlayState.isRecording);
+                    
+                    handleRecordingToggle();
+                });
+                console.log('✅ OVERLAY: Recording button event listener attached');
             } else {
-                console.error('❌ OVERLAY: Test button not found!');
+                console.error('❌ OVERLAY: Recording button not found!');
             }
 
             console.log('✅ OVERLAY: Event listeners setup complete');
@@ -395,105 +518,168 @@
                 console.log('❓ OVERLAY: Question displayed:', question.text);
             }
             
-            // Update status
+            // Update status and recording button
+            updateStatusDisplay();
+            updateRecordingButtonState();
+        }
+
+        function updateStatusDisplay() {
             const statusText = document.getElementById('status-text');
             if (statusText) {
-                statusText.textContent = overlayState.isListening ? 'Listening...' : 'Ready';
+                if (overlayState.isRecording) {
+                    statusText.textContent = overlayState.liveTranscriptionActive ? 'Recording - Live transcription active' : 'Recording...';
+                } else {
+                    statusText.textContent = 'Ready - Click Start to begin recording';
+                }
             }
         }
 
-        async function handleTest() {
-            console.log('🧪 OVERLAY: Starting comprehensive test...');
+        function updateRecordingButtonState() {
+            const recordingBtn = document.getElementById('recording-btn');
+            if (!recordingBtn) return;
+
+            // Clear existing classes and content
+            recordingBtn.className = 'control-button';
             
+            if (overlayState.isRecording) {
+                // Recording state - show Stop button (Requirement 2.2)
+                recordingBtn.classList.add('recording');
+                recordingBtn.innerHTML = '<span class="recording-indicator"></span>Stop';
+                recordingBtn.title = 'Click to stop recording';
+            } else {
+                // Stopped state - show Start button (Requirement 2.2)
+                recordingBtn.classList.add('stopped');
+                recordingBtn.innerHTML = '<span class="stopped-indicator"></span>Start';
+                recordingBtn.title = 'Click to start recording';
+            }
+            
+            console.log('🔄 OVERLAY: Recording button state updated:', {
+                isRecording: overlayState.isRecording,
+                buttonText: recordingBtn.textContent,
+                buttonClass: recordingBtn.className
+            });
+        }
+
+        async function handleRecordingToggle() {
+            console.log('🎤 OVERLAY: Toggling recording state...');
+            console.log('📊 Current state:', {
+                isRecording: overlayState.isRecording,
+                liveTranscriptionActive: overlayState.liveTranscriptionActive
+            });
+
             try {
-                // Test 1: Check APIs
-                console.log('🧪 TEST 1: Checking available APIs...');
-                console.log('   - window.electronAPI:', !!window.electronAPI);
-                console.log('   - window.dataManager:', !!window.dataManager);
-                
-                // Test 2: Start live transcription
-                if (window.electronAPI) {
-                    console.log('🧪 TEST 2: Testing live transcription...');
-                    
-                    const initResult = await window.electronAPI.initializeLiveTranscription();
-                    console.log('📊 Live transcription init result:', initResult);
-                    
-                    const streamResult = await window.electronAPI.startLiveTranscriptionStreaming();
-                    console.log('📊 Streaming start result:', streamResult);
-                    
-                    const audioResult = await window.electronAPI.startAudioCapture({
-                        sampleRate: 16000,
-                        channels: 1,
-                        bufferSize: 1600 // 100ms chunks for low latency
-                    });
-                    console.log('📊 Audio capture result:', audioResult);
-                    
-                    // Set up automatic audio forwarding to live transcription
-                    window.electronAPI.onAudioDetected((audioBuffer) => {
-                        console.log('🎤 OVERLAY: Audio detected, forwarding to live transcription:', {
-                            size: audioBuffer.byteLength,
-                            timestamp: new Date().toISOString()
-                        });
-                        
-                        // Forward audio to live transcription
-                        window.electronAPI.sendAudioToLiveTranscription(audioBuffer)
-                            .then(result => {
-                                if (!result.success) {
-                                    console.warn('⚠️ OVERLAY: Failed to send audio to live transcription:', result.error);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('❌ OVERLAY: Error sending audio to live transcription:', error);
-                            });
-                    });
-                    
-                    // Test 3: Test with real audio if available
-                    console.log('🧪 TEST 3: Testing audio processing...');
-                    
-                    // First test with dummy audio to verify connection
-                    const dummyAudio = new ArrayBuffer(1600); // 100ms at 16kHz
-                    const sendResult = await window.electronAPI.sendAudioToLiveTranscription(dummyAudio);
-                    console.log('📊 Dummy audio send result:', sendResult);
-                    
-                    // Add a test button for real audio file testing
-                    const testBtn = document.getElementById('test-btn');
-                    if (testBtn) {
-                        testBtn.textContent = '🎤 Test Audio';
-                        testBtn.title = 'Click to test with audio file (dateRecording.m4a should transcribe to "21st May 1992 11:00 AM")';
-                    }
-                    
-                    // Update UI to show test is working
-                    const responseDisplay = document.getElementById('response-display');
-                    if (responseDisplay) {
-                        responseDisplay.textContent = 'Live transcription active - speak now...';
-                        responseDisplay.classList.add('listening');
-                        responseDisplay.style.color = '#4caf50';
-                        responseDisplay.style.borderLeft = '3px solid #4caf50';
-                    }
-                    
-                    const statusText = document.getElementById('status-text');
-                    if (statusText) {
-                        statusText.textContent = 'Live transcription ready - interim results enabled';
-                    }
-                    
-                    // Mark live transcription as active
-                    overlayState.liveTranscriptionActive = true;
-                    overlayState.isListening = true;
-                    
-                    console.log('🎉 OVERLAY: Test completed successfully');
+                if (overlayState.isRecording) {
+                    // Stop recording
+                    await stopRecording();
                 } else {
-                    console.error('❌ OVERLAY: ElectronAPI not available for testing');
+                    // Start recording
+                    await startRecording();
                 }
-                
             } catch (error) {
-                console.error('❌ OVERLAY: Test failed:', error);
+                console.error('❌ OVERLAY: Recording toggle failed:', error);
                 
                 const responseDisplay = document.getElementById('response-display');
                 if (responseDisplay) {
-                    responseDisplay.textContent = `TEST FAILED: ${error.message}`;
+                    responseDisplay.textContent = `Recording error: ${error.message}`;
+                    responseDisplay.style.color = '#f44336';
                 }
             }
         }
+
+        async function startRecording() {
+            console.log('▶️ OVERLAY: Starting recording...');
+            
+            if (window.electronAPI) {
+                // Initialize and start live transcription
+                const initResult = await window.electronAPI.initializeLiveTranscription();
+                console.log('📊 Start recording: Live transcription init result:', initResult);
+                
+                const streamResult = await window.electronAPI.startLiveTranscriptionStreaming();
+                console.log('📊 Start recording: Streaming start result:', streamResult);
+                
+                const audioResult = await window.electronAPI.startAudioCapture({
+                    sampleRate: 16000,
+                    channels: 1,
+                    bufferSize: 1600 // 100ms chunks for low latency
+                });
+                console.log('📊 Start recording: Audio capture result:', audioResult);
+                
+                // Set up automatic audio forwarding to live transcription
+                window.electronAPI.onAudioDetected((audioBuffer) => {
+                    window.electronAPI.sendAudioToLiveTranscription(audioBuffer)
+                        .then(result => {
+                            if (!result.success) {
+                                console.warn('⚠️ OVERLAY: Failed to send audio to live transcription:', result.error);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('❌ OVERLAY: Error sending audio to live transcription:', error);
+                        });
+                });
+                
+                // Update state
+                overlayState.isRecording = true;
+                overlayState.liveTranscriptionActive = true;
+                
+                // Update UI
+                updateRecordingButtonState();
+                updateStatusDisplay();
+                
+                const responseDisplay = document.getElementById('response-display');
+                if (responseDisplay) {
+                    responseDisplay.textContent = 'Recording started - speak now...';
+                    responseDisplay.style.color = '#4caf50';
+                    responseDisplay.classList.add('listening');
+                }
+                
+                console.log('✅ OVERLAY: Recording started successfully');
+            } else {
+                throw new Error('ElectronAPI not available');
+            }
+        }
+
+        async function stopRecording() {
+            console.log('⏹️ OVERLAY: Stopping recording...');
+            
+            if (window.electronAPI) {
+                try {
+                    // Stop audio capture
+                    await window.electronAPI.stopAudioCapture();
+                    
+                    // Stop live transcription streaming if method exists
+                    if (typeof window.electronAPI.stopLiveTranscriptionStreaming === 'function') {
+                        await window.electronAPI.stopLiveTranscriptionStreaming();
+                    } else {
+                        console.log('ℹ️ OVERLAY: stopLiveTranscriptionStreaming method not available, using alternative approach');
+                        // Alternative: we can just stop sending audio, which effectively stops transcription
+                    }
+                } catch (error) {
+                    console.warn('⚠️ OVERLAY: Error during stop operations:', error);
+                    // Continue with state updates even if stop operations fail
+                }
+                
+                // Update state
+                overlayState.isRecording = false;
+                overlayState.liveTranscriptionActive = false;
+                
+                // Update UI
+                updateRecordingButtonState();
+                updateStatusDisplay();
+                
+                const responseDisplay = document.getElementById('response-display');
+                if (responseDisplay) {
+                    responseDisplay.textContent = 'Recording stopped - click Start to resume';
+                    responseDisplay.style.color = '#ffffff';
+                    responseDisplay.classList.remove('listening');
+                }
+                
+                console.log('✅ OVERLAY: Recording stopped successfully');
+            } else {
+                throw new Error('ElectronAPI not available');
+            }
+        }
+
+
 
         function handleReset() {
             console.log('🔄 OVERLAY: Resetting current question...');
@@ -501,20 +687,27 @@
             
             const responseDisplay = document.getElementById('response-display');
             if (responseDisplay) {
-                responseDisplay.textContent = 'Speak your answer...';
+                if (overlayState.isRecording) {
+                    responseDisplay.textContent = 'Recording - speak your answer...';
+                } else {
+                    responseDisplay.textContent = 'Click Start to begin recording...';
+                }
                 responseDisplay.classList.remove('listening');
+                responseDisplay.style.color = '#ffffff';
+                responseDisplay.style.borderLeft = '3px solid #34a853';
+                responseDisplay.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
             }
             
-            const statusText = document.getElementById('status-text');
-            if (statusText) {
-                statusText.textContent = 'Ready';
-            }
-            
-            overlayState.isListening = false;
+            updateStatusDisplay();
         }
 
-        function handleNext() {
+        async function handleNext() {
             console.log('▶️ OVERLAY: Moving to next question...');
+            
+            // Save current response if available
+            if (overlayState.currentResponse) {
+                await saveCurrentResponse();
+            }
             
             // Move to next question
             overlayState.currentQuestionIndex++;
@@ -527,7 +720,21 @@
                 // Check if we're done with all patients
                 if (overlayState.currentPatientIndex >= overlayState.patients.length) {
                     console.log('🎉 OVERLAY: All questionnaires completed!');
-                    alert('All questionnaires completed!');
+                    console.log('📊 OVERLAY: Current state:', {
+                        currentPatientIndex: overlayState.currentPatientIndex,
+                        totalPatients: overlayState.patients.length,
+                        currentQuestionIndex: overlayState.currentQuestionIndex,
+                        totalQuestions: overlayState.questions.length
+                    });
+                    
+                    try {
+                        console.log('📤 OVERLAY: About to call showExportDialog...');
+                        await showExportDialog();
+                        console.log('✅ OVERLAY: showExportDialog completed');
+                    } catch (error) {
+                        console.error('❌ OVERLAY: Error in showExportDialog:', error);
+                        alert('All questionnaires completed! There was an error showing the export dialog.');
+                    }
                     return;
                 }
             }
@@ -550,9 +757,20 @@
             }
             
             if (overlayState.isPaused) {
-                overlayState.isListening = false;
-                const statusText = document.getElementById('status-text');
-                if (statusText) statusText.textContent = 'Paused';
+                // When paused, temporarily stop recording but keep the state
+                if (overlayState.isRecording) {
+                    stopRecording().catch(error => {
+                        console.error('❌ OVERLAY: Error stopping recording during pause:', error);
+                    });
+                }
+                updateStatusDisplay();
+            } else {
+                // When resuming, restart recording if it was active
+                if (overlayState.isRecording) {
+                    startRecording().catch(error => {
+                        console.error('❌ OVERLAY: Error starting recording during resume:', error);
+                    });
+                }
             }
         }
 
@@ -673,6 +891,285 @@
             }
             
             console.error('❌ OVERLAY: Displayed transcription error:', error.message);
+        }
+
+        async function saveCurrentResponse() {
+            if (!overlayState.currentResponse) {
+                console.log('ℹ️ OVERLAY: No response to save');
+                return;
+            }
+
+            try {
+                console.log('💾 OVERLAY: Saving current response...');
+                
+                if (window.dataManager) {
+                    // Create a proper response object
+                    const response = {
+                        questionId: overlayState.questions[overlayState.currentQuestionIndex]?.id,
+                        patientMrn: overlayState.patients[overlayState.currentPatientIndex]?.mrn,
+                        rawText: overlayState.currentResponse.text || '',
+                        parsedValue: overlayState.currentResponse.text || '',
+                        responseType: 'any', // Default type
+                        confidence: overlayState.currentResponse.confidence || 0,
+                        timestamp: new Date()
+                    };
+                    
+                    // Process the response using AI if available
+                    if (window.electronAPI && response.rawText) {
+                        try {
+                            const parsedResponse = await window.electronAPI.parseResponse(response.rawText);
+                            if (parsedResponse.success) {
+                                response.parsedValue = parsedResponse.parsedValue;
+                                response.responseType = parsedResponse.responseType;
+                            }
+                        } catch (error) {
+                            console.warn('⚠️ OVERLAY: Failed to parse response with AI:', error);
+                        }
+                    }
+                    
+                    // Save the response
+                    const saveResult = await window.dataManager.saveResponse(response);
+                    if (saveResult.success) {
+                        console.log('✅ OVERLAY: Response saved successfully');
+                    } else {
+                        console.error('❌ OVERLAY: Failed to save response:', saveResult.error);
+                    }
+                } else {
+                    console.error('❌ OVERLAY: DataManager not available');
+                }
+            } catch (error) {
+                console.error('❌ OVERLAY: Error saving response:', error);
+            }
+        }
+
+        async function showExportDialog() {
+            console.log('📤 OVERLAY: Showing export dialog...');
+            console.log('📤 OVERLAY: Function called successfully');
+            console.log('📤 OVERLAY: Checking window.exportManager availability:', !!window.exportManager);
+            console.log('📤 OVERLAY: Checking window.dataManager availability:', !!window.dataManager);
+            
+            try {
+                console.log('📤 OVERLAY: Creating export dialog...');
+                // Create export dialog overlay
+                const exportDialog = createExportDialog();
+                console.log('📤 OVERLAY: Export dialog created:', !!exportDialog);
+                
+                console.log('📤 OVERLAY: Appending to document body...');
+                document.body.appendChild(exportDialog);
+                console.log('📤 OVERLAY: Dialog appended to body');
+                
+                // Show the dialog
+                console.log('📤 OVERLAY: Setting display to flex...');
+                exportDialog.style.display = 'flex';
+                console.log('📤 OVERLAY: Dialog should now be visible');
+                
+            } catch (error) {
+                console.error('❌ OVERLAY: Error showing export dialog:', error);
+                console.error('❌ OVERLAY: Error stack:', error.stack);
+                // Fallback to simple alert
+                alert('All questionnaires completed! Export functionality will be available soon.');
+            }
+        }
+
+        function createExportDialog() {
+            console.log('🏗️ OVERLAY: Creating export dialog element...');
+            const dialog = document.createElement('div');
+            dialog.id = 'export-dialog';
+            dialog.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(10px);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+            
+            const dialogContent = document.createElement('div');
+            dialogContent.style.cssText = `
+                background: rgba(30, 30, 30, 0.95);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 12px;
+                padding: 30px;
+                max-width: 500px;
+                width: 90%;
+                color: white;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            `;
+            
+            dialogContent.innerHTML = `
+                <h2 style="margin: 0 0 20px 0; color: #4caf50; font-size: 24px;">
+                    🎉 All Questionnaires Completed!
+                </h2>
+                <p style="margin: 0 0 25px 0; color: rgba(255, 255, 255, 0.8); font-size: 16px; line-height: 1.5;">
+                    All questions for all patients have been completed successfully.<br>
+                    Would you like to export the captured answers?
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                    <button id="export-csv-btn" style="
+                        background: rgba(76, 175, 80, 0.4);
+                        border: 1px solid rgba(76, 175, 80, 0.6);
+                        border-radius: 8px;
+                        color: white;
+                        padding: 12px 24px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        min-width: 120px;
+                    ">
+                        📊 Export CSV
+                    </button>
+                    <button id="export-later-btn" style="
+                        background: rgba(255, 255, 255, 0.15);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border-radius: 8px;
+                        color: white;
+                        padding: 12px 24px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                        min-width: 120px;
+                    ">
+                        Later
+                    </button>
+                </div>
+                <div id="export-status" style="
+                    margin-top: 20px;
+                    padding: 10px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    display: none;
+                "></div>
+            `;
+            
+            dialog.appendChild(dialogContent);
+            
+            // Add event listeners
+            const exportCsvBtn = dialogContent.querySelector('#export-csv-btn');
+            const exportLaterBtn = dialogContent.querySelector('#export-later-btn');
+            const exportStatus = dialogContent.querySelector('#export-status');
+            
+            exportCsvBtn.addEventListener('click', async () => {
+                console.log('📊 OVERLAY: Export CSV button clicked');
+                await handleExportCSV(exportStatus);
+            });
+            
+            exportLaterBtn.addEventListener('click', () => {
+                console.log('⏰ OVERLAY: Export later button clicked');
+                closeExportDialog();
+            });
+            
+            // Add hover effects
+            exportCsvBtn.addEventListener('mouseenter', () => {
+                exportCsvBtn.style.background = 'rgba(76, 175, 80, 0.6)';
+                exportCsvBtn.style.transform = 'translateY(-2px)';
+            });
+            
+            exportCsvBtn.addEventListener('mouseleave', () => {
+                exportCsvBtn.style.background = 'rgba(76, 175, 80, 0.4)';
+                exportCsvBtn.style.transform = 'translateY(0)';
+            });
+            
+            exportLaterBtn.addEventListener('mouseenter', () => {
+                exportLaterBtn.style.background = 'rgba(255, 255, 255, 0.25)';
+                exportLaterBtn.style.transform = 'translateY(-2px)';
+            });
+            
+            exportLaterBtn.addEventListener('mouseleave', () => {
+                exportLaterBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+                exportLaterBtn.style.transform = 'translateY(0)';
+            });
+            
+            return dialog;
+        }
+
+        async function handleExportCSV(statusElement) {
+            try {
+                console.log('📤 OVERLAY: Starting CSV export...');
+                
+                // Show loading status
+                statusElement.style.display = 'block';
+                statusElement.style.background = 'rgba(33, 150, 243, 0.2)';
+                statusElement.style.color = '#2196f3';
+                statusElement.textContent = '⏳ Preparing export...';
+                
+                if (!window.exportManager) {
+                    console.warn('⚠️ OVERLAY: Export manager not available, showing simple dialog');
+                    statusElement.style.display = 'block';
+                    statusElement.style.background = 'rgba(255, 152, 0, 0.2)';
+                    statusElement.style.color = '#ff9800';
+                    statusElement.textContent = '⚠️ Export functionality not fully available. Please use the main app export feature.';
+                    return;
+                }
+                
+                // Configure export settings for the task requirements
+                // The task specifies: CSV format with MRN number, Question Number, and Answer captured
+                const exportSettings = {
+                    format: 'csv',
+                    includeTimestamps: true,
+                    includeConfidence: true,
+                    includeRawText: true,
+                    includePatientDetails: true,
+                    includeQuestionDetails: true,
+                    sortBy: 'patient' // Sort by patient (MRN) first
+                };
+                
+                console.log('⚙️ OVERLAY: Export settings:', exportSettings);
+                
+                // Update status
+                statusElement.textContent = '📊 Exporting data...';
+                
+                // Use the export manager to show file dialog and export
+                const exportResult = await window.exportManager.exportWithDialog(exportSettings);
+                
+                console.log('📋 OVERLAY: Export result:', exportResult);
+                
+                if (exportResult.success) {
+                    // Show success status
+                    statusElement.style.background = 'rgba(76, 175, 80, 0.2)';
+                    statusElement.style.color = '#4caf50';
+                    statusElement.innerHTML = `
+                        ✅ Export completed successfully!<br>
+                        <small>File: ${exportResult.filePath}<br>
+                        Records: ${exportResult.recordCount} | Size: ${(exportResult.fileSize / 1024).toFixed(1)} KB</small>
+                    `;
+                    
+                    // Auto-close dialog after 3 seconds
+                    setTimeout(() => {
+                        closeExportDialog();
+                    }, 3000);
+                    
+                } else {
+                    // Show error status
+                    statusElement.style.background = 'rgba(244, 67, 54, 0.2)';
+                    statusElement.style.color = '#f44336';
+                    statusElement.textContent = `❌ Export failed: ${exportResult.error}`;
+                }
+                
+            } catch (error) {
+                console.error('❌ OVERLAY: Export error:', error);
+                
+                // Show error status
+                statusElement.style.display = 'block';
+                statusElement.style.background = 'rgba(244, 67, 54, 0.2)';
+                statusElement.style.color = '#f44336';
+                statusElement.textContent = `❌ Export error: ${error.message}`;
+            }
+        }
+
+        function closeExportDialog() {
+            const dialog = document.getElementById('export-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+            console.log('🚪 OVERLAY: Export dialog closed');
         }
 
         // Global error handlers
