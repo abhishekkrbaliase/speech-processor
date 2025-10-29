@@ -1,6 +1,35 @@
 const path = require('path');
 const fs = require('fs');
 
+// Copy HTML and JS files after build
+function copyRendererFiles() {
+  const srcDir = path.join(__dirname, 'src', 'renderer');
+  const distDir = path.join(__dirname, 'dist');
+  
+  // Ensure dist directory exists
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true });
+  }
+  
+  // Copy all HTML files
+  const htmlFiles = fs.readdirSync(srcDir).filter(file => file.endsWith('.html'));
+  htmlFiles.forEach(file => {
+    const srcPath = path.join(srcDir, file);
+    const distPath = path.join(distDir, file);
+    fs.copyFileSync(srcPath, distPath);
+    console.log(`Copied ${file} to dist/`);
+  });
+  
+  // Copy all JS files (like overlay-new.js)
+  const jsFiles = fs.readdirSync(srcDir).filter(file => file.endsWith('.js'));
+  jsFiles.forEach(file => {
+    const srcPath = path.join(srcDir, file);
+    const distPath = path.join(distDir, file);
+    fs.copyFileSync(srcPath, distPath);
+    console.log(`Copied ${file} to dist/`);
+  });
+}
+
 module.exports = [
   // Main process configuration
   {
@@ -105,3 +134,15 @@ module.exports = [
     },
   },
 ];
+
+// Add a plugin to copy HTML and JS files after build
+module.exports.forEach(config => {
+  if (!config.plugins) config.plugins = [];
+  config.plugins.push({
+    apply: (compiler) => {
+      compiler.hooks.afterEmit.tap('CopyRendererFilesPlugin', () => {
+        copyRendererFiles();
+      });
+    }
+  });
+});
