@@ -644,29 +644,30 @@ function handleReset() {
     overlayState.isListening = false;
 }
 
-function handleNext() {
-    console.log('▶️ OVERLAY-NEW: Moving to next question...');
+async function handleNext() {
+    console.log('▶️ OVERLAY-NEW: Next button clicked');
     
-    // Move to next question
+    // Step 1: Save the current response
+    await saveCurrentResponse();
+    
+    // Step 2: Move to next question
     overlayState.currentQuestionIndex++;
     
-    // Check if we need to move to next patient
+    // Step 3: Check if we need to move to next patient
     if (overlayState.currentQuestionIndex >= overlayState.questions.length) {
         overlayState.currentQuestionIndex = 0;
         overlayState.currentPatientIndex++;
         
-        // Check if we're done with all patients
+        // Step 4: Check if we're done with all patients
         if (overlayState.currentPatientIndex >= overlayState.patients.length) {
             console.log('🎉 OVERLAY-NEW: All questionnaires completed!');
-            alert('All questionnaires completed!');
+            await showExportDialog();
             return;
         }
     }
     
-    // Reset response for new question
+    // Step 5: Reset for new question
     overlayState.currentResponse = null;
-    
-    // Update display
     updateDisplay();
     handleReset();
 }
@@ -693,6 +694,193 @@ function handlePause() {
     }
 }
 
+// Helper function to determine response type
+function determineResponseType(text) {
+    var lowerText = text.toLowerCase().trim();
+    
+    // Check for yes/no responses
+    if (lowerText.match(/^(yes|yeah|yep|y|true|correct|right)\.?$/)) {
+        return 'yes';
+    }
+    if (lowerText.match(/^(no|nope|n|false|incorrect|wrong)\.?$/)) {
+        return 'no';
+    }
+    
+    // Check for not applicable responses
+    if (lowerText.match(/^(not applicable|n\/a|na|none|not relevant)\.?$/)) {
+        return 'not_applicable';
+    }
+    
+    // Check for date/time patterns
+    if (lowerText.match(/\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}/) || // 12/31/2023, 12-31-23
+        lowerText.match(/\d{1,2}(st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december)/i) || // 1st January
+        lowerText.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}/i) || // January 1
+        lowerText.match(/\d{1,2}:\d{2}/) || // 12:30
+        lowerText.match(/(morning|afternoon|evening|night|am|pm)/i) || // time indicators
+        lowerText.match(/\d{4}/) // year
+    ) {
+        return 'date_time';
+    }
+    
+    // Default to unclear for anything else
+    return 'unclear';
+}
+
+// Step 1: Save current response function
+async function saveCurrentResponse() {
+    // Get the current displayed text (what the user sees)
+    var responseDisplay = document.getElementById('response-display');
+    var displayedText = responseDisplay ? responseDisplay.textContent.trim() : '';
+    
+    // Skip if no meaningful text
+    if (!displayedText || displayedText === 'Speak your answer...' || displayedText === 'TEST BUTTON WORKS!') {
+        console.log('⚠️ OVERLAY-NEW: No response to save - displayed text:', displayedText);
+        return;
+    }
+    
+    // Get current patient and question
+    var currentPatient = overlayState.patients[overlayState.currentPatientIndex];
+    var currentQuestion = overlayState.questions[overlayState.currentQuestionIndex];
+    
+    if (!currentPatient || !currentQuestion) {
+        console.error('❌ OVERLAY-NEW: Missing patient or question data');
+        return;
+    }
+    
+    // Clean the displayed text (remove quotes)
+    var cleanText = displayedText.replace(/"/g, '');
+    
+    // Determine correct response type based on content
+    var responseType = determineResponseType(cleanText);
+    
+    // Create response object
+    var response = {
+        questionId: currentQuestion.id,
+        patientMrn: currentPatient.mrn,
+        rawText: cleanText,
+        parsedValue: cleanText,
+        responseType: responseType,
+        confidence: 0.8,
+        timestamp: new Date()
+    };
+    
+    console.log('💾 OVERLAY-NEW: Saving response:', {
+        patient: currentPatient.name + ' (' + currentPatient.mrn + ')',
+        question: currentQuestion.text,
+        answer: cleanText,
+        responseType: responseType
+    });
+    
+    try {
+        // Save to DataManager
+        await window.dataManager.addResponse(response);
+        console.log('✅ OVERLAY-NEW: Response saved successfully');
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Failed to save response:', error);
+    }
+}
+
+// Step 3: Show export dialog when all questions completed
+async function showExportDialog() {
+    console.log('📤 OVERLAY-NEW: Showing export dialog');
+    
+    // First, log what responses we have
+    await logSavedResponses();
+    
+    // Create simple export dialog
+    var dialog = document.createElement('div');
+    dialog.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
+        z-index: 1000;
+    `;
+    
+    dialog.innerHTML = `
+        <div style="background: #2a2a2a; padding: 30px; border-radius: 10px; text-align: center; color: white;">
+            <h2>🎉 All Questionnaires Completed!</h2>
+            <p>All questions for all patients have been completed successfully.</p>
+            <p>Would you like to export the captured answers?</p>
+            <button id="export-csv-btn" style="background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 10px; cursor: pointer;">
+                📊 Export CSV
+            </button>
+            <button id="export-later-btn" style="background: #666; color: white; padding: 10px 20px; border: none; border-radius: 5px; margin: 10px; cursor: pointer;">
+                Later
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(dialog);
+    
+    // Add event listeners
+    document.getElementById('export-csv-btn').addEventListener('click', async function() {
+        await handleExportCSV();
+        document.body.removeChild(dialog);
+    });
+    
+    document.getElementById('export-later-btn').addEventListener('click', function() {
+        document.body.removeChild(dialog);
+    });
+}
+
+// Step 4: Log what responses were saved (for debugging)
+async function logSavedResponses() {
+    try {
+        var allResponses = await window.dataManager.getAllResponses();
+        console.log('📋 OVERLAY-NEW: Retrieved responses for export:', allResponses.length);
+        
+        allResponses.forEach(function(response, index) {
+            console.log('📝 OVERLAY-NEW: Response ' + (index + 1) + ':', {
+                patient: response.patientMrn,
+                question: response.questionId,
+                answer: response.rawText
+            });
+        });
+        
+        return allResponses;
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Failed to retrieve responses:', error);
+        return [];
+    }
+}
+
+// Step 5: Handle CSV export
+async function handleExportCSV() {
+    console.log('📤 OVERLAY-NEW: Starting CSV export');
+    
+    var responses = await logSavedResponses();
+    
+    if (responses.length === 0) {
+        alert('No responses found to export');
+        return;
+    }
+    
+    // Use the existing export manager
+    var exportSettings = {
+        format: 'csv',
+        includeTimestamps: true,
+        includeConfidence: true,
+        includeRawText: true,
+        includePatientDetails: true,
+        includeQuestionDetails: true,
+        sortBy: 'patient'
+    };
+    
+    try {
+        var exportResult = await window.exportManager.exportWithDialog(exportSettings);
+        
+        if (exportResult.success) {
+            console.log('✅ OVERLAY-NEW: Export successful:', exportResult.filePath);
+            alert('Export completed successfully!\nFile: ' + exportResult.filePath);
+        } else {
+            console.error('❌ OVERLAY-NEW: Export failed:', exportResult.error);
+            alert('Export failed: ' + exportResult.error);
+        }
+    } catch (error) {
+        console.error('❌ OVERLAY-NEW: Export error:', error);
+        alert('Export error: ' + error.message);
+    }
+}
+
 // Global error handlers
 window.addEventListener('error', function(event) {
     console.error('❌ OVERLAY-NEW: Global error:', event.error);
@@ -701,5 +889,18 @@ window.addEventListener('error', function(event) {
 window.addEventListener('unhandledrejection', function(event) {
     console.error('❌ OVERLAY-NEW: Unhandled promise rejection:', event.reason);
 });
+
+// Test function to set a response manually (for testing)
+function setTestResponse(text) {
+    var responseDisplay = document.getElementById('response-display');
+    if (responseDisplay) {
+        responseDisplay.textContent = '"' + text + '"';
+        responseDisplay.style.color = '#4CAF50';
+    }
+    console.log('🧪 OVERLAY-NEW: Test response set:', text);
+}
+
+// Expose for testing
+window.setTestResponse = setTestResponse;
 
 console.log('🎯 OVERLAY-NEW: Script loaded completely');

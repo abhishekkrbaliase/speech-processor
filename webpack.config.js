@@ -5,12 +5,12 @@ const fs = require('fs');
 function copyRendererFiles() {
   const srcDir = path.join(__dirname, 'src', 'renderer');
   const distDir = path.join(__dirname, 'dist');
-  
+
   // Ensure dist directory exists
   if (!fs.existsSync(distDir)) {
     fs.mkdirSync(distDir, { recursive: true });
   }
-  
+
   // Copy all HTML files
   const htmlFiles = fs.readdirSync(srcDir).filter(file => file.endsWith('.html'));
   htmlFiles.forEach(file => {
@@ -19,7 +19,7 @@ function copyRendererFiles() {
     fs.copyFileSync(srcPath, distPath);
     console.log(`Copied ${file} to dist/`);
   });
-  
+
   // Copy all JS files (like overlay-new.js)
   const jsFiles = fs.readdirSync(srcDir).filter(file => file.endsWith('.js'));
   jsFiles.forEach(file => {
@@ -61,7 +61,7 @@ module.exports = [
       '@google-cloud/speech': 'commonjs @google-cloud/speech',
     },
   },
-  
+
   // Preload script configuration
   {
     mode: process.env.NODE_ENV || 'development',
@@ -87,7 +87,7 @@ module.exports = [
       'electron': 'commonjs electron',
     },
   },
-  
+
   // Renderer process configuration (main window)
   {
     mode: process.env.NODE_ENV || 'development',
@@ -110,29 +110,8 @@ module.exports = [
       ],
     },
   },
-  
-  // Overlay renderer configuration
-  {
-    mode: process.env.NODE_ENV || 'development',
-    target: 'electron-renderer',
-    entry: './src/renderer/overlay.ts',
-    output: {
-      path: path.resolve(__dirname, 'dist'),
-      filename: 'overlay.js',
-    },
-    resolve: {
-      extensions: ['.ts', '.js'],
-    },
-    module: {
-      rules: [
-        {
-          test: /\.ts$/,
-          use: 'ts-loader',
-          exclude: /node_modules/,
-        },
-      ],
-    },
-  },
+
+
 ];
 
 // Add a plugin to copy HTML and JS files after build
