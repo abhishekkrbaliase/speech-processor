@@ -10,7 +10,8 @@ let overlayState = {
     currentQuestionIndex: 0,
     currentResponse: null,
     isListening: false,
-    isPaused: false
+    isPaused: false,
+    allQuestionnairesCompleted: false
 };
 
 // Initialize when DOM is ready
@@ -96,26 +97,26 @@ function setupEventListeners() {
         });
     }
 
-    // Test button - MOST IMPORTANT
+    // Start button - MOST IMPORTANT
     if (testBtn) {
         testBtn.addEventListener('click', function() {
-            console.log('🧪 OVERLAY-NEW: TEST BUTTON CLICKED!');
+            console.log('🚀 OVERLAY-NEW: START BUTTON CLICKED!');
             console.log('📍 Timestamp:', new Date().toISOString());
             console.log('🔍 Current State:', overlayState);
             
             // Immediate visual feedback
             var responseDisplay = document.getElementById('response-display');
             if (responseDisplay) {
-                responseDisplay.textContent = 'TEST BUTTON WORKS!';
+                responseDisplay.textContent = 'START BUTTON WORKS!';
                 responseDisplay.style.color = '#4CAF50';
             }
             
             // Call the full test
             handleTest();
         });
-        console.log('✅ OVERLAY-NEW: Test button event listener attached');
+        console.log('✅ OVERLAY-NEW: Start button event listener attached');
     } else {
-        console.error('❌ OVERLAY-NEW: Test button not found!');
+        console.error('❌ OVERLAY-NEW: Start button not found!');
     }
 
     console.log('✅ OVERLAY-NEW: Event listeners setup complete');
@@ -172,7 +173,7 @@ function handleTest() {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             console.log('🧪 TEST 2: Starting browser-based audio capture...');
             
-            // Update Test button to show it's now a Start/Stop toggle
+            // Update Start button to show it's now a Start/Stop toggle
             var testBtn = document.getElementById('test-btn');
             if (testBtn) {
                 if (isListening) {
@@ -427,6 +428,13 @@ function calculateSpeechRatio(buffer) {
 function processAudioBufferWithQualityCheck() {
     if (audioBuffer.length === 0 || isProcessing) return;
     
+    // Don't process audio if all questionnaires are completed
+    if (overlayState.allQuestionnairesCompleted) {
+        console.log('ℹ️ OVERLAY-NEW: All questionnaires completed - skipping Google Speech API call');
+        resetAudioBuffer();
+        return;
+    }
+    
     isProcessing = true;
     
     try {
@@ -536,6 +544,13 @@ function resetAudioBuffer() {
 
 function processAudioBuffer() {
     if (audioBuffer.length === 0 || isProcessing) return;
+    
+    // Don't process audio if all questionnaires are completed
+    if (overlayState.allQuestionnairesCompleted) {
+        console.log('ℹ️ OVERLAY-NEW: All questionnaires completed - skipping Google Speech API call');
+        resetAudioBuffer();
+        return;
+    }
     
     isProcessing = true;
     
@@ -661,6 +676,13 @@ async function handleNext() {
         // Step 4: Check if we're done with all patients
         if (overlayState.currentPatientIndex >= overlayState.patients.length) {
             console.log('🎉 OVERLAY-NEW: All questionnaires completed!');
+            overlayState.allQuestionnairesCompleted = true;
+            
+            // Stop any ongoing audio capture
+            if (overlayState.isListening) {
+                stopBrowserAudioCapture();
+            }
+            
             await showExportDialog();
             return;
         }
@@ -733,7 +755,7 @@ async function saveCurrentResponse() {
     var displayedText = responseDisplay ? responseDisplay.textContent.trim() : '';
     
     // Skip if no meaningful text
-    if (!displayedText || displayedText === 'Speak your answer...' || displayedText === 'TEST BUTTON WORKS!') {
+    if (!displayedText || displayedText === 'Speak your answer...' || displayedText === 'START BUTTON WORKS!') {
         console.log('⚠️ OVERLAY-NEW: No response to save - displayed text:', displayedText);
         return;
     }
