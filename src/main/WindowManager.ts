@@ -20,16 +20,17 @@ export class WindowManager {
 
     // Create overlay window with proper overlay properties (cross-platform)
     const windowOptions: any = {
-      width: 500, // Wider for rectangular layout
-      height: 180, // Shorter for 3-line layout
-      minWidth: 400, // Minimum width
-      minHeight: 150, // Minimum height
-      maxWidth: 800, // Maximum width
-      maxHeight: 300, // Maximum height
-      x: Math.floor(screenWidth - 370), // Position near right edge with margin
-      y: Math.floor(screenHeight / 2 - 125), // Center vertically
+      width: 900, // Wide enough for question and answer side by side
+      height: 95, // Compact height for 2-line layout (header + content + buttons)
+      minWidth: 700, // Minimum width to fit content
+      minHeight: 85, // Minimum height
+      maxWidth: 1200, // Maximum width
+      maxHeight: 110, // Maximum height
+      x: Math.floor(screenWidth - 920), // Position near right edge with margin
+      y: Math.floor(screenHeight / 2 - 50), // Center vertically
       frame: false, // Remove window frame for overlay
       transparent: true, // Enable transparency for overlay
+      backgroundColor: '#00000000', // Fully transparent background
       alwaysOnTop: true, // Keep on top of other windows
       skipTaskbar: true, // Don't show in taskbar
       resizable: true, // Allow resizing
@@ -62,6 +63,9 @@ export class WindowManager {
     }
 
     this.overlayWindow = new BrowserWindow(windowOptions);
+
+    // Set transparent background color
+    this.overlayWindow.setBackgroundColor('#00000000');
 
     // Configure click-through behavior initially disabled
     this.setClickThrough(false);

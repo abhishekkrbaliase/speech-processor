@@ -67,6 +67,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isOverlayVisible: () => ipcRenderer.invoke('overlay:isVisible'),
   resizeWindow: (width: number, height: number, x?: number, y?: number) => 
     ipcRenderer.invoke('overlay:resize', width, height, x, y),
+  setClickThrough: (enabled: boolean) => ipcRenderer.send('set-click-through', enabled),
+  setWindowOpacity: (opacity: number) => ipcRenderer.send('set-window-opacity', opacity),
 
   // Live Transcription operations
   initializeLiveTranscription: () => ipcRenderer.invoke('liveTranscription:initialize'),

@@ -362,6 +362,33 @@ class SpeechOverlayApp {
       }
     });
 
+    ipcMain.on('close-overlay', () => {
+      console.log('IPC: close-overlay called');
+      this.windowManager.destroyOverlay();
+    });
+
+    ipcMain.on('set-click-through', (_, enabled: boolean) => {
+      console.log('IPC: set-click-through called with:', enabled);
+      const overlayWindow = this.windowManager.getOverlayWindow();
+      if (overlayWindow) {
+        if (enabled) {
+          overlayWindow.setIgnoreMouseEvents(true, { forward: true });
+        } else {
+          overlayWindow.setIgnoreMouseEvents(false);
+        }
+      }
+    });
+
+    ipcMain.on('set-window-opacity', (_, opacity: number) => {
+      console.log('IPC: set-window-opacity called with:', opacity);
+      const overlayWindow = this.windowManager.getOverlayWindow();
+      if (overlayWindow) {
+        // Clamp opacity between 0 and 1
+        const clampedOpacity = Math.max(0, Math.min(1, opacity));
+        overlayWindow.setOpacity(clampedOpacity);
+      }
+    });
+
     // AI Service IPC handlers
     ipcMain.handle('ai:initialize', async () => {
       try {

@@ -12,56 +12,119 @@
             box-sizing: border-box;
         }
 
-        body {
+        html, body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: transparent;
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
             user-select: none;
             color: white;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
         }
 
         .drag-handle {
-            height: 25px;
-            background: rgba(255, 255, 255, 0.1);
+            height: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
             cursor: move;
             -webkit-app-region: drag;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0 8px;
+            border-radius: 6px 6px 0 0;
+            width: 100%;
+            box-sizing: border-box;
+            gap: 12px;
         }
 
         .patient-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            -webkit-app-region: no-drag;
-            font-size: 10px;
+            font-size: 9px;
             color: rgba(255, 255, 255, 0.7);
+            flex: 1;
+            pointer-events: none;
+        }
+
+        .opacity-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            -webkit-app-region: no-drag;
+            pointer-events: auto;
+        }
+
+        .opacity-slider {
+            width: 60px;
+            height: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .opacity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .opacity-slider::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .opacity-label {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.6);
         }
 
         .overlay-content {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 8px;
-            gap: 6px;
+            padding: 4px;
+            gap: 4px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
-        .question-line {
-            background: rgba(255, 255, 255, 0.1);
+        .combined-line {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
             border-radius: 6px;
             padding: 6px 8px;
-            border-left: 3px solid #4285f4;
-            min-height: 28px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 32px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .question-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-right: 8px;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .question-text {
@@ -69,54 +132,78 @@
             font-size: 11px;
             font-weight: 500;
             line-height: 1.3;
+            flex: 1;
         }
 
-        .answer-line {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 6px 8px;
-            border-left: 3px solid #34a853;
-            min-height: 28px;
-        }
-
-        .status-text {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 11px;
-            margin-bottom: 3px;
-            line-height: 1.2;
+        .answer-section {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
         }
 
         .response-display {
-            color: white;
+            color: #4CAF50;
             font-size: 11px;
             font-weight: 500;
-            min-height: 16px;
             line-height: 1.3;
+            flex: 1;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
+
+        .status-indicator.listening {
+            background: #4CAF50;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.processing {
+            background: #FF9800;
+            animation: pulse 1s infinite;
+        }
+
+        .status-indicator.error {
+            background: #F44336;
+        }
+
+        .confidence-indicator {
+            font-size: 10px;
+            opacity: 0.7;
+            flex-shrink: 0;
         }
 
         .controls-line {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            padding: 6px;
-            border-left: 3px solid #ff9800;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 0 0 6px 6px;
+            padding: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 4px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .control-button {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
+            border-radius: 4px;
             color: white;
-            padding: 5px 10px;
-            font-size: 11px;
+            padding: 4px 8px;
+            font-size: 10px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             -webkit-app-region: no-drag;
-            min-width: 60px;
+            min-width: 50px;
         }
 
         .control-button:hover {
@@ -174,8 +261,14 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 0.7; }
-            50% { opacity: 1; }
+            0%, 100% { 
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.2);
+            }
         }
 
         @keyframes recordingPulse {
@@ -203,26 +296,31 @@
             <span id="patient-name">No patient loaded</span>
             <span id="progress-text">0/0</span>
         </div>
+        <div class="opacity-control">
+            <span class="opacity-label">👁️</span>
+            <input type="range" min="0" max="100" value="50" class="opacity-slider" id="opacity-slider">
+        </div>
     </div>
 
     <!-- Main content -->
-    <div class="overlay-content">
-        <!-- Question -->
-        <div class="question-line">
-            <div id="question-text" class="question-text">Load questions to begin...</div>
-        </div>
-
-        <!-- Answer Recognition -->
-        <div class="answer-line">
-            <div id="status-text" class="status-text">Ready</div>
-            <div id="response-display" class="response-display">Speak your answer...</div>
+    <div class="overlay-content" id="overlay-container">
+        <!-- Combined Question and Answer Line -->
+        <div class="combined-line">
+            <div class="question-section">
+                <div id="question-text" class="question-text">Load questions to begin...</div>
+            </div>
+            <div class="answer-section">
+                <div class="status-indicator" id="status-indicator"></div>
+                <div id="response-display" class="response-display">Speak your answer...</div>
+                <div class="confidence-indicator" id="confidence-indicator"></div>
+            </div>
         </div>
 
         <!-- Controls -->
         <div class="controls-line">
             <button class="control-button danger" id="reset-btn">🔄 Reset</button>
             <button class="control-button primary" id="next-btn">▶️ Next</button>
-            <button class="control-button recording" id="recording-btn">🚀 Start/Pause</button>
+            <button class="control-button recording" id="recording-btn">🚀 Start</button>
         </div>
     </div>
 
@@ -233,6 +331,44 @@
         console.log('📍 Timestamp:', new Date().toISOString());
         console.log('🔍 Document state:', document.readyState);
         console.log('🌐 Window object:', typeof window);
+        
+        // Helper function to update visual indicators
+        function updateStatusIndicator(state) {
+            const indicator = document.getElementById('status-indicator');
+            if (!indicator) return;
+            
+            indicator.className = 'status-indicator';
+            if (state === 'listening') {
+                indicator.classList.add('listening');
+            } else if (state === 'processing') {
+                indicator.classList.add('processing');
+            } else if (state === 'error') {
+                indicator.classList.add('error');
+            }
+        }
+
+        // Helper function to update confidence indicator
+        function updateConfidenceIndicator(confidence) {
+            const indicator = document.getElementById('confidence-indicator');
+            if (!indicator) return;
+            
+            if (confidence === null || confidence === undefined) {
+                indicator.textContent = '';
+                return;
+            }
+            
+            const percent = Math.round(confidence * 100);
+            if (percent >= 80) {
+                indicator.textContent = '✓✓';
+                indicator.style.color = '#4CAF50';
+            } else if (percent >= 60) {
+                indicator.textContent = '✓';
+                indicator.style.color = '#FF9800';
+            } else {
+                indicator.textContent = '?';
+                indicator.style.color = '#F44336';
+            }
+        }
         
         // Test basic functionality
         try {
@@ -277,6 +413,21 @@
 
         async function initializeOverlay() {
             console.log('🔧 OVERLAY: Initializing...');
+            
+            // Initialize opacity slider to set initial overlay opacity
+            console.log('🔧 OVERLAY: Initializing opacity slider...');
+            const opacitySlider = document.getElementById('opacity-slider');
+            if (opacitySlider) {
+                const initialOpacity = opacitySlider.value / 100;
+                console.log('🔍 OVERLAY: Initial opacity value:', initialOpacity);
+                const body = document.body;
+                if (body) {
+                    body.style.opacity = initialOpacity;
+                    console.log('🎨 OVERLAY: Setting initial overlay opacity to:', initialOpacity);
+                }
+            } else {
+                console.error('❌ OVERLAY: Opacity slider not found during initialization!');
+            }
             
             // Load data from main process
             if (window.dataManager) {
@@ -451,6 +602,40 @@
                 console.log('✅ OVERLAY: Start/Pause button event listener attached');
             } else {
                 console.error('❌ OVERLAY: Start/Pause button not found!');
+            }
+
+            // Opacity slider
+            const opacitySlider = document.getElementById('opacity-slider');
+            console.log('🔍 OVERLAY: Opacity slider element:', opacitySlider);
+            if (opacitySlider) {
+                console.log('🔍 OVERLAY: Initial slider value:', opacitySlider.value);
+                
+                opacitySlider.addEventListener('input', function() {
+                    const opacity = this.value / 100;
+                    console.log('🎚️ OVERLAY: Slider changed to:', this.value, 'opacity:', opacity);
+                    
+                    // Fade the entire overlay including drag handle and content
+                    const body = document.body;
+                    if (body) {
+                        body.style.opacity = opacity;
+                        console.log('🎨 OVERLAY: Setting entire overlay opacity to:', opacity);
+                    }
+                    
+                    // Enable click-through when opacity is very low (less than 10%)
+                    if (window.electron && window.electron.setClickThrough) {
+                        const enableClickThrough = opacity < 0.1;
+                        console.log('🖱️ OVERLAY: Setting click-through:', enableClickThrough);
+                        window.electron.setClickThrough(enableClickThrough);
+                    }
+                });
+                
+                // Trigger initial update
+                const initialEvent = new Event('input');
+                opacitySlider.dispatchEvent(initialEvent);
+                
+                console.log('✅ OVERLAY: Opacity slider event listener attached');
+            } else {
+                console.error('❌ OVERLAY: Opacity slider not found!');
             }
 
             console.log('✅ OVERLAY: Event listeners setup complete');
@@ -1109,10 +1294,18 @@
                         Records: ${exportResult.recordCount} | Size: ${(exportResult.fileSize / 1024).toFixed(1)} KB</small>
                     `;
                     
-                    // Auto-close dialog after 3 seconds
+                    // Auto-close dialog and overlay after 2 seconds
                     setTimeout(() => {
                         closeExportDialog();
-                    }, 3000);
+                        
+                        // Close the overlay window after successful export
+                        console.log('🔒 OVERLAY: Closing overlay window after export');
+                        if (window.electron && window.electron.ipcRenderer) {
+                            window.electron.ipcRenderer.send('close-overlay');
+                        } else {
+                            window.close();
+                        }
+                    }, 2000);
                     
                 } else {
                     // Show error status
