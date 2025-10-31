@@ -60,13 +60,11 @@ function setupEventListeners() {
     // Get button elements
     var resetBtn = document.getElementById('reset-btn');
     var nextBtn = document.getElementById('next-btn');
-    var pauseBtn = document.getElementById('pause-btn');
     var testBtn = document.getElementById('test-btn');
 
     console.log('🔍 OVERLAY-NEW: Button elements found:', {
         resetBtn: !!resetBtn,
         nextBtn: !!nextBtn,
-        pauseBtn: !!pauseBtn,
         testBtn: !!testBtn
     });
 
@@ -88,35 +86,30 @@ function setupEventListeners() {
         });
     }
 
-    // Pause button
-    if (pauseBtn) {
-        pauseBtn.addEventListener('click', function() {
-            console.log('⏸️ OVERLAY-NEW: PAUSE BUTTON CLICKED!');
-            console.log('📍 Timestamp:', new Date().toISOString());
-            handlePause();
-        });
-    }
-
-    // Start button - MOST IMPORTANT
+    // Start/Pause button - Combined functionality
     if (testBtn) {
         testBtn.addEventListener('click', function() {
-            console.log('🚀 OVERLAY-NEW: START BUTTON CLICKED!');
+            console.log('🚀 OVERLAY-NEW: START/PAUSE BUTTON CLICKED!');
             console.log('📍 Timestamp:', new Date().toISOString());
             console.log('🔍 Current State:', overlayState);
             
-            // Immediate visual feedback
-            var responseDisplay = document.getElementById('response-display');
-            if (responseDisplay) {
-                responseDisplay.textContent = 'START BUTTON WORKS!';
-                responseDisplay.style.color = '#4CAF50';
+            // Toggle between start and pause
+            if (overlayState.isPaused || !overlayState.isRecording) {
+                // Start/Resume
+                var responseDisplay = document.getElementById('response-display');
+                if (responseDisplay) {
+                    responseDisplay.textContent = 'START BUTTON WORKS!';
+                    responseDisplay.style.color = '#4CAF50';
+                }
+                handleTest();
+            } else {
+                // Pause
+                handlePause();
             }
-            
-            // Call the full test
-            handleTest();
         });
-        console.log('✅ OVERLAY-NEW: Start button event listener attached');
+        console.log('✅ OVERLAY-NEW: Start/Pause button event listener attached');
     } else {
-        console.error('❌ OVERLAY-NEW: Start button not found!');
+        console.error('❌ OVERLAY-NEW: Start/Pause button not found!');
     }
 
     console.log('✅ OVERLAY-NEW: Event listeners setup complete');
@@ -698,9 +691,9 @@ function handlePause() {
     console.log('⏸️ OVERLAY-NEW: Toggling pause state...');
     overlayState.isPaused = !overlayState.isPaused;
     
-    var pauseBtn = document.getElementById('pause-btn');
-    if (pauseBtn) {
-        pauseBtn.textContent = overlayState.isPaused ? '▶️ Resume' : '⏸️ Pause';
+    var testBtn = document.getElementById('test-btn');
+    if (testBtn) {
+        testBtn.textContent = overlayState.isPaused ? '▶️ Resume' : '⏸️ Pause';
     }
     
     if (overlayState.isPaused) {

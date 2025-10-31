@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(10px);
             border-radius: 8px;
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -51,54 +51,57 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 15px;
-            gap: 12px;
+            padding: 8px;
+            gap: 6px;
         }
 
         .question-line {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 6px;
-            padding: 12px;
+            padding: 6px 8px;
             border-left: 3px solid #4285f4;
-            min-height: 45px;
+            min-height: 28px;
         }
 
         .question-text {
             color: white;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 500;
+            line-height: 1.3;
         }
 
         .answer-line {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 6px;
-            padding: 12px;
+            padding: 6px 8px;
             border-left: 3px solid #34a853;
-            min-height: 45px;
+            min-height: 28px;
         }
 
         .status-text {
             color: rgba(255, 255, 255, 0.8);
             font-size: 11px;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
+            line-height: 1.2;
         }
 
         .response-display {
             color: white;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 500;
-            min-height: 20px;
+            min-height: 16px;
+            line-height: 1.3;
         }
 
         .controls-line {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 6px;
-            padding: 10px;
+            padding: 6px;
             border-left: 3px solid #ff9800;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 6px;
         }
 
         .control-button {
@@ -106,13 +109,13 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 5px;
             color: white;
-            padding: 8px 16px;
-            font-size: 12px;
+            padding: 5px 10px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             -webkit-app-region: no-drag;
-            min-width: 70px;
+            min-width: 60px;
         }
 
         .control-button:hover {
@@ -172,9 +175,7 @@
         <div class="controls-line">
             <button class="control-button danger" id="reset-btn">🔄 Reset</button>
             <button class="control-button primary" id="next-btn">▶️ Next</button>
-            <button class="control-button" id="pause-btn">⏸️ Pause</button>
-            <button class="control-button" id="export-btn">📤 Export</button>
-            <button class="control-button test" id="test-btn">🚀 Start</button>
+            <button class="control-button test" id="test-btn">🚀 Start/Pause</button>
         </div>
     </div>
 
