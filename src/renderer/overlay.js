@@ -1,5 +1,5 @@
 // Simple overlay JavaScript - no TypeScript, no modules, just plain JS
-console.log('🚀 OVERLAY-NEW.JS: Script starting...');
+console.log('🚀 OVERLAY.JS: Script starting...');
 console.log('📍 Timestamp:', new Date().toISOString());
 
 // Global state
@@ -54,76 +54,76 @@ function updateConfidenceIndicator(confidence) {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ OVERLAY-NEW: DOMContentLoaded fired');
+    console.log('✅ OVERLAY: DOMContentLoaded fired');
     
     try {
         initializeOverlay();
         setupEventListeners();
         updateDisplay();
-        console.log('🎉 OVERLAY-NEW: Initialization complete');
+        console.log('🎉 OVERLAY: Initialization complete');
     } catch (error) {
-        console.error('❌ OVERLAY-NEW: Initialization failed:', error);
+        console.error('❌ OVERLAY: Initialization failed:', error);
     }
 });
 
 function initializeOverlay() {
-    console.log('🔧 OVERLAY-NEW: Initializing...');
+    console.log('🔧 OVERLAY: Initializing...');
     
     // Initialize opacity slider to set initial overlay opacity
-    console.log('🔧 OVERLAY-NEW: Initializing opacity slider...');
+    console.log('🔧 OVERLAY: Initializing opacity slider...');
     var opacitySlider = document.getElementById('opacity-slider');
     if (opacitySlider) {
         var initialOpacity = opacitySlider.value / 100;
-        console.log('🔍 OVERLAY-NEW: Initial opacity value:', initialOpacity);
+        console.log('🔍 OVERLAY: Initial opacity value:', initialOpacity);
         
         // Set initial window opacity
         if (window.electronAPI && window.electronAPI.setWindowOpacity) {
             window.electronAPI.setWindowOpacity(initialOpacity);
-            console.log('🎨 OVERLAY-NEW: Setting initial window opacity to:', initialOpacity);
+            console.log('🎨 OVERLAY: Setting initial window opacity to:', initialOpacity);
         } else {
             // Fallback to body opacity if window API not available
             var body = document.body;
             if (body) {
                 body.style.opacity = initialOpacity;
-                console.log('🎨 OVERLAY-NEW: Setting initial body opacity to:', initialOpacity, '(fallback)');
+                console.log('🎨 OVERLAY: Setting initial body opacity to:', initialOpacity, '(fallback)');
             }
         }
     } else {
-        console.error('❌ OVERLAY-NEW: Opacity slider not found during initialization!');
+        console.error('❌ OVERLAY: Opacity slider not found during initialization!');
     }
     
     // Load data from main process
     if (window.dataManager) {
-        console.log('📊 OVERLAY-NEW: Loading data...');
+        console.log('📊 OVERLAY: Loading data...');
         window.dataManager.getAllPatients().then(function(patients) {
             overlayState.patients = patients;
-            console.log('✅ OVERLAY-NEW: Patients loaded:', patients.length);
+            console.log('✅ OVERLAY: Patients loaded:', patients.length);
             updateDisplay();
         }).catch(function(error) {
-            console.error('❌ OVERLAY-NEW: Failed to load patients:', error);
+            console.error('❌ OVERLAY: Failed to load patients:', error);
         });
         
         window.dataManager.getAllQuestions().then(function(questions) {
             overlayState.questions = questions;
-            console.log('✅ OVERLAY-NEW: Questions loaded:', questions.length);
+            console.log('✅ OVERLAY: Questions loaded:', questions.length);
             updateDisplay();
         }).catch(function(error) {
-            console.error('❌ OVERLAY-NEW: Failed to load questions:', error);
+            console.error('❌ OVERLAY: Failed to load questions:', error);
         });
     } else {
-        console.warn('⚠️ OVERLAY-NEW: DataManager not available');
+        console.warn('⚠️ OVERLAY: DataManager not available');
     }
 }
 
 function setupEventListeners() {
-    console.log('🔧 OVERLAY-NEW: Setting up event listeners...');
+    console.log('🔧 OVERLAY: Setting up event listeners...');
     
     // Get button elements
     var resetBtn = document.getElementById('reset-btn');
     var nextBtn = document.getElementById('next-btn');
     var testBtn = document.getElementById('test-btn');
 
-    console.log('🔍 OVERLAY-NEW: Button elements found:', {
+    console.log('🔍 OVERLAY: Button elements found:', {
         resetBtn: !!resetBtn,
         nextBtn: !!nextBtn,
         testBtn: !!testBtn
@@ -132,7 +132,7 @@ function setupEventListeners() {
     // Reset button
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
-            console.log('🔄 OVERLAY-NEW: RESET BUTTON CLICKED!');
+            console.log('🔄 OVERLAY: RESET BUTTON CLICKED!');
             console.log('📍 Timestamp:', new Date().toISOString());
             handleReset();
         });
@@ -141,7 +141,7 @@ function setupEventListeners() {
     // Next button
     if (nextBtn) {
         nextBtn.addEventListener('click', function() {
-            console.log('▶️ OVERLAY-NEW: NEXT BUTTON CLICKED!');
+            console.log('▶️ OVERLAY: NEXT BUTTON CLICKED!');
             console.log('📍 Timestamp:', new Date().toISOString());
             handleNext();
         });
@@ -150,7 +150,7 @@ function setupEventListeners() {
     // Start/Pause button - Combined functionality
     if (testBtn) {
         testBtn.addEventListener('click', function() {
-            console.log('🚀 OVERLAY-NEW: START/PAUSE BUTTON CLICKED!');
+            console.log('🚀 OVERLAY: START/PAUSE BUTTON CLICKED!');
             console.log('📍 Timestamp:', new Date().toISOString());
             console.log('🔍 Current State:', overlayState);
             
@@ -168,39 +168,39 @@ function setupEventListeners() {
                 handlePause();
             }
         });
-        console.log('✅ OVERLAY-NEW: Start/Pause button event listener attached');
+        console.log('✅ OVERLAY: Start/Pause button event listener attached');
     } else {
-        console.error('❌ OVERLAY-NEW: Start/Pause button not found!');
+        console.error('❌ OVERLAY: Start/Pause button not found!');
     }
 
     // Opacity slider
     var opacitySlider = document.getElementById('opacity-slider');
-    console.log('🔍 OVERLAY-NEW: Opacity slider element:', opacitySlider);
+    console.log('🔍 OVERLAY: Opacity slider element:', opacitySlider);
     if (opacitySlider) {
-        console.log('🔍 OVERLAY-NEW: Initial slider value:', opacitySlider.value);
+        console.log('🔍 OVERLAY: Initial slider value:', opacitySlider.value);
         
         opacitySlider.addEventListener('input', function() {
             // Map slider value (44-100) to opacity (0.44-1.0)
             var opacity = this.value / 100;
-            console.log('🎚️ OVERLAY-NEW: Slider changed to:', this.value, 'opacity:', opacity);
+            console.log('🎚️ OVERLAY: Slider changed to:', this.value, 'opacity:', opacity);
             
             // Set window opacity (affects the entire window including background)
             if (window.electronAPI && window.electronAPI.setWindowOpacity) {
                 window.electronAPI.setWindowOpacity(opacity);
-                console.log('🎨 OVERLAY-NEW: Setting window opacity to:', opacity);
+                console.log('🎨 OVERLAY: Setting window opacity to:', opacity);
             } else {
                 // Fallback to body opacity if window API not available
                 var body = document.body;
                 if (body) {
                     body.style.opacity = opacity;
-                    console.log('🎨 OVERLAY-NEW: Setting body opacity to:', opacity, '(fallback)');
+                    console.log('🎨 OVERLAY: Setting body opacity to:', opacity, '(fallback)');
                 }
             }
             
             // Enable click-through when opacity is very low (less than 50% = 0.5)
             if (window.electronAPI && window.electronAPI.setClickThrough) {
                 var enableClickThrough = opacity < 0.5;
-                console.log('🖱️ OVERLAY-NEW: Setting click-through:', enableClickThrough);
+                console.log('🖱️ OVERLAY: Setting click-through:', enableClickThrough);
                 window.electronAPI.setClickThrough(enableClickThrough);
             }
         });
@@ -209,16 +209,16 @@ function setupEventListeners() {
         var initialEvent = new Event('input');
         opacitySlider.dispatchEvent(initialEvent);
         
-        console.log('✅ OVERLAY-NEW: Opacity slider event listener attached');
+        console.log('✅ OVERLAY: Opacity slider event listener attached');
     } else {
-        console.error('❌ OVERLAY-NEW: Opacity slider not found!');
+        console.error('❌ OVERLAY: Opacity slider not found!');
     }
 
-    console.log('✅ OVERLAY-NEW: Event listeners setup complete');
+    console.log('✅ OVERLAY: Event listeners setup complete');
 }
 
 function updateDisplay() {
-    console.log('🖥️ OVERLAY-NEW: Updating display...');
+    console.log('🖥️ OVERLAY: Updating display...');
     
     // Update patient info
     var patientMrn = document.getElementById('patient-mrn');
@@ -231,7 +231,7 @@ function updateDisplay() {
         if (patientName) patientName.textContent = patient.name;
         if (progressText) progressText.textContent = (overlayState.currentQuestionIndex + 1) + '/' + overlayState.questions.length;
         
-        console.log('👤 OVERLAY-NEW: Patient displayed:', {
+        console.log('👤 OVERLAY: Patient displayed:', {
             mrn: patient.mrn,
             name: patient.name,
             progress: (overlayState.currentQuestionIndex + 1) + '/' + overlayState.questions.length
@@ -244,7 +244,7 @@ function updateDisplay() {
         var question = overlayState.questions[overlayState.currentQuestionIndex];
         if (questionText) questionText.textContent = question.text;
         
-        console.log('❓ OVERLAY-NEW: Question displayed:', question.text);
+        console.log('❓ OVERLAY: Question displayed:', question.text);
     }
     
     // Update status indicator
@@ -252,7 +252,7 @@ function updateDisplay() {
 }
 
 function handleTest() {
-    console.log('🧪 OVERLAY-NEW: Starting comprehensive test...');
+    console.log('🧪 OVERLAY: Starting comprehensive test...');
     
     try {
         // Test 1: Check APIs
@@ -279,11 +279,11 @@ function handleTest() {
                 }
             }
         } else {
-            console.error('❌ OVERLAY-NEW: Browser audio APIs not available');
+            console.error('❌ OVERLAY: Browser audio APIs not available');
         }
         
     } catch (error) {
-        console.error('❌ OVERLAY-NEW: Test failed:', error);
+        console.error('❌ OVERLAY: Test failed:', error);
         
         var responseDisplay = document.getElementById('response-display');
         if (responseDisplay) {
@@ -306,33 +306,33 @@ var audioLevelHistory = [];
 var maxBufferDuration = 4.0; // Maximum buffer duration in seconds (reduced from 7.7s)
 
 function startBrowserAudioCapture() {
-    console.log('🎤 OVERLAY-NEW: Starting browser audio capture...');
+    console.log('🎤 OVERLAY: Starting browser audio capture...');
     
     // First, initialize the Google Speech service
     if (window.electronAPI && window.electronAPI.initializeAI) {
-        console.log('🤖 OVERLAY-NEW: Initializing Google Speech service...');
+        console.log('🤖 OVERLAY: Initializing Google Speech service...');
         window.electronAPI.initializeAI().then(function(initResult) {
-            console.log('📊 OVERLAY-NEW: AI initialization result:', initResult);
+            console.log('📊 OVERLAY: AI initialization result:', initResult);
             
             if (initResult.success) {
-                console.log('✅ OVERLAY-NEW: Google Speech service initialized, starting audio capture...');
+                console.log('✅ OVERLAY: Google Speech service initialized, starting audio capture...');
                 startMicrophoneCapture();
             } else {
-                console.error('❌ OVERLAY-NEW: Failed to initialize Google Speech service:', initResult.error);
+                console.error('❌ OVERLAY: Failed to initialize Google Speech service:', initResult.error);
                 var responseDisplay = document.getElementById('response-display');
                 if (responseDisplay) {
                     responseDisplay.textContent = 'Speech service initialization failed';
                 }
             }
         }).catch(function(error) {
-            console.error('❌ OVERLAY-NEW: AI initialization error:', error);
+            console.error('❌ OVERLAY: AI initialization error:', error);
             var responseDisplay = document.getElementById('response-display');
             if (responseDisplay) {
                 responseDisplay.textContent = 'Speech service error';
             }
         });
     } else {
-        console.error('❌ OVERLAY-NEW: ElectronAPI not available');
+        console.error('❌ OVERLAY: ElectronAPI not available');
         var responseDisplay = document.getElementById('response-display');
         if (responseDisplay) {
             responseDisplay.textContent = 'ElectronAPI not available';
@@ -341,7 +341,7 @@ function startBrowserAudioCapture() {
 }
 
 function startMicrophoneCapture() {
-    console.log('🎤 OVERLAY-NEW: Starting microphone capture...');
+    console.log('🎤 OVERLAY: Starting microphone capture...');
     
     navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -351,7 +351,7 @@ function startMicrophoneCapture() {
             noiseSuppression: true
         } 
     }).then(function(stream) {
-        console.log('✅ OVERLAY-NEW: Microphone access granted');
+        console.log('✅ OVERLAY: Microphone access granted');
         
         // Set up audio context
         audioContext = new (window.AudioContext || window.webkitAudioContext)({
@@ -372,10 +372,10 @@ function startMicrophoneCapture() {
         
         updateStatusIndicator('listening');
         
-        console.log('🎉 OVERLAY-NEW: Browser audio capture started successfully');
+        console.log('🎉 OVERLAY: Browser audio capture started successfully');
         
     }).catch(function(error) {
-        console.error('❌ OVERLAY-NEW: Microphone access failed:', error);
+        console.error('❌ OVERLAY: Microphone access failed:', error);
         
         var responseDisplay = document.getElementById('response-display');
         if (responseDisplay) {
@@ -425,7 +425,7 @@ function setupAudioProcessing(stream) {
             
             // Only log occasionally to avoid spam
             if (Math.random() < 0.01) {
-                console.log('🗣️ OVERLAY-NEW: Speech detected, level:', rms.toFixed(4));
+                console.log('🗣️ OVERLAY: Speech detected, level:', rms.toFixed(4));
             }
         } else {
             silenceCounter++;
@@ -466,7 +466,7 @@ function setupAudioProcessing(stream) {
             var speechRatio = calculateSpeechRatio(audioBuffer);
             if (speechRatio < 0.1) {
                 // Buffer is mostly silence - don't process
-                console.log('⚠️ OVERLAY-NEW: Skipping processing - insufficient speech content (' + Math.round(speechRatio * 100) + '%)');
+                console.log('⚠️ OVERLAY: Skipping processing - insufficient speech content (' + Math.round(speechRatio * 100) + '%)');
                 audioBuffer = []; // Clear buffer and wait for better audio
                 speechDetected = false;
                 return;
@@ -474,7 +474,7 @@ function setupAudioProcessing(stream) {
         }
         
         if (shouldProcess && speechDetected && !isProcessing && audioBuffer.length > 8000) {
-            console.log('🎤 OVERLAY-NEW: Processing audio buffer:', bufferDuration.toFixed(1) + 's (' + reason + ')');
+            console.log('🎤 OVERLAY: Processing audio buffer:', bufferDuration.toFixed(1) + 's (' + reason + ')');
             processAudioBufferWithQualityCheck();
         }
     };
@@ -517,7 +517,7 @@ function processAudioBufferWithQualityCheck() {
     
     // Don't process audio if all questionnaires are completed
     if (overlayState.allQuestionnairesCompleted) {
-        console.log('ℹ️ OVERLAY-NEW: All questionnaires completed - skipping Google Speech API call');
+        console.log('ℹ️ OVERLAY: All questionnaires completed - skipping Google Speech API call');
         resetAudioBuffer();
         return;
     }
@@ -530,7 +530,7 @@ function processAudioBufferWithQualityCheck() {
         
         if (cleanedBuffer.length < 4000) {
             // Buffer too short after cleaning - likely just noise
-            console.log('⚠️ OVERLAY-NEW: Buffer too short after silence removal, skipping');
+            console.log('⚠️ OVERLAY: Buffer too short after silence removal, skipping');
             resetAudioBuffer();
             return;
         }
@@ -539,7 +539,7 @@ function processAudioBufferWithQualityCheck() {
         var float32Array = new Float32Array(cleanedBuffer);
         var arrayBuffer = float32Array.buffer;
         
-        console.log('🎤 OVERLAY-NEW: Processing', cleanedBuffer.length, 'audio samples (cleaned from', audioBuffer.length, ')');
+        console.log('🎤 OVERLAY: Processing', cleanedBuffer.length, 'audio samples (cleaned from', audioBuffer.length, ')');
         
         // Check if we have electronAPI for processing
         if (window.electronAPI && window.electronAPI.processAudioStream) {
@@ -548,7 +548,7 @@ function processAudioBufferWithQualityCheck() {
                     var text = result.response.rawText.trim();
                     var confidence = result.response.confidence || 0;
                     
-                    console.log('✅ OVERLAY-NEW: Transcribed:', text, '(' + Math.round(confidence * 100) + '% confidence)');
+                    console.log('✅ OVERLAY: Transcribed:', text, '(' + Math.round(confidence * 100) + '% confidence)');
                     
                     // Update UI with result
                     var responseDisplay = document.getElementById('response-display');
@@ -561,23 +561,23 @@ function processAudioBufferWithQualityCheck() {
                     updateConfidenceIndicator(confidence);
                     
                 } else {
-                    console.log('ℹ️ OVERLAY-NEW: No transcription result - trying shorter buffer next time');
+                    console.log('ℹ️ OVERLAY: No transcription result - trying shorter buffer next time');
                     
                     // Show error indicator
                     updateStatusIndicator('error');
                 }
             }).catch(function(error) {
-                console.error('❌ OVERLAY-NEW: Processing failed:', error);
+                console.error('❌ OVERLAY: Processing failed:', error);
                 updateStatusIndicator('error');
             }).finally(function() {
                 resetAudioBuffer();
             });
         } else {
-            console.error('❌ OVERLAY-NEW: electronAPI not available');
+            console.error('❌ OVERLAY: electronAPI not available');
             resetAudioBuffer();
         }
     } catch (error) {
-        console.error('❌ OVERLAY-NEW: Buffer processing error:', error);
+        console.error('❌ OVERLAY: Buffer processing error:', error);
         resetAudioBuffer();
     }
 }
@@ -622,7 +622,7 @@ function processAudioBuffer() {
     
     // Don't process audio if all questionnaires are completed
     if (overlayState.allQuestionnairesCompleted) {
-        console.log('ℹ️ OVERLAY-NEW: All questionnaires completed - skipping Google Speech API call');
+        console.log('ℹ️ OVERLAY: All questionnaires completed - skipping Google Speech API call');
         resetAudioBuffer();
         return;
     }
@@ -634,7 +634,7 @@ function processAudioBuffer() {
         var float32Array = new Float32Array(audioBuffer);
         var arrayBuffer = float32Array.buffer;
         
-        console.log('🎤 OVERLAY-NEW: Processing', audioBuffer.length, 'audio samples');
+        console.log('🎤 OVERLAY: Processing', audioBuffer.length, 'audio samples');
         
         // Check if we have electronAPI for processing
         if (window.electronAPI && window.electronAPI.processAudioStream) {
@@ -643,7 +643,7 @@ function processAudioBuffer() {
                     var text = result.response.rawText.trim();
                     var confidence = result.response.confidence || 0;
                     
-                    console.log('✅ OVERLAY-NEW: Transcribed:', text, '(' + Math.round(confidence * 100) + '% confidence)');
+                    console.log('✅ OVERLAY: Transcribed:', text, '(' + Math.round(confidence * 100) + '% confidence)');
                     
                     // Update UI with result
                     var responseDisplay = document.getElementById('response-display');
@@ -655,26 +655,26 @@ function processAudioBuffer() {
                     updateConfidenceIndicator(confidence);
                     
                 } else {
-                    console.log('ℹ️ OVERLAY-NEW: No transcription result');
+                    console.log('ℹ️ OVERLAY: No transcription result');
                 }
             }).catch(function(error) {
-                console.error('❌ OVERLAY-NEW: Processing failed:', error);
+                console.error('❌ OVERLAY: Processing failed:', error);
             }).finally(function() {
                 resetAudioBuffer();
             });
         } else {
-            console.log('❌ OVERLAY-NEW: No electronAPI available for processing');
+            console.log('❌ OVERLAY: No electronAPI available for processing');
             resetAudioBuffer();
         }
         
     } catch (error) {
-        console.error('❌ OVERLAY-NEW: Audio processing error:', error);
+        console.error('❌ OVERLAY: Audio processing error:', error);
         resetAudioBuffer();
     }
 }
 
 function stopBrowserAudioCapture() {
-    console.log('🛑 OVERLAY-NEW: Stopping browser audio capture...');
+    console.log('🛑 OVERLAY: Stopping browser audio capture...');
     
     isListening = false;
     overlayState.isListening = false;
@@ -707,11 +707,11 @@ function stopBrowserAudioCapture() {
     updateStatusIndicator(null);
     updateConfidenceIndicator(null);
     
-    console.log('✅ OVERLAY-NEW: Browser audio capture stopped');
+    console.log('✅ OVERLAY: Browser audio capture stopped');
 }
 
 function handleReset() {
-    console.log('🔄 OVERLAY-NEW: Resetting current question...');
+    console.log('🔄 OVERLAY: Resetting current question...');
     overlayState.currentResponse = null;
     
     var responseDisplay = document.getElementById('response-display');
@@ -728,7 +728,7 @@ function handleReset() {
 }
 
 async function handleNext() {
-    console.log('▶️ OVERLAY-NEW: Next button clicked');
+    console.log('▶️ OVERLAY: Next button clicked');
     
     // Step 1: Save the current response
     await saveCurrentResponse();
@@ -743,7 +743,7 @@ async function handleNext() {
         
         // Step 4: Check if we're done with all patients
         if (overlayState.currentPatientIndex >= overlayState.patients.length) {
-            console.log('🎉 OVERLAY-NEW: All questionnaires completed!');
+            console.log('🎉 OVERLAY: All questionnaires completed!');
             overlayState.allQuestionnairesCompleted = true;
             
             // Stop any ongoing audio capture
@@ -763,7 +763,7 @@ async function handleNext() {
 }
 
 function handlePause() {
-    console.log('⏸️ OVERLAY-NEW: Toggling pause state...');
+    console.log('⏸️ OVERLAY: Toggling pause state...');
     overlayState.isPaused = !overlayState.isPaused;
     
     var testBtn = document.getElementById('test-btn');
@@ -823,7 +823,7 @@ async function saveCurrentResponse() {
     
     // Skip if no meaningful text
     if (!displayedText || displayedText === 'Speak your answer...' || displayedText === 'START BUTTON WORKS!') {
-        console.log('⚠️ OVERLAY-NEW: No response to save - displayed text:', displayedText);
+        console.log('⚠️ OVERLAY: No response to save - displayed text:', displayedText);
         return;
     }
     
@@ -832,7 +832,7 @@ async function saveCurrentResponse() {
     var currentQuestion = overlayState.questions[overlayState.currentQuestionIndex];
     
     if (!currentPatient || !currentQuestion) {
-        console.error('❌ OVERLAY-NEW: Missing patient or question data');
+        console.error('❌ OVERLAY: Missing patient or question data');
         return;
     }
     
@@ -853,7 +853,7 @@ async function saveCurrentResponse() {
         timestamp: new Date()
     };
     
-    console.log('💾 OVERLAY-NEW: Saving response:', {
+    console.log('💾 OVERLAY: Saving response:', {
         patient: currentPatient.name + ' (' + currentPatient.mrn + ')',
         question: currentQuestion.text,
         answer: cleanText,
@@ -863,15 +863,15 @@ async function saveCurrentResponse() {
     try {
         // Save to DataManager
         await window.dataManager.addResponse(response);
-        console.log('✅ OVERLAY-NEW: Response saved successfully');
+        console.log('✅ OVERLAY: Response saved successfully');
     } catch (error) {
-        console.error('❌ OVERLAY-NEW: Failed to save response:', error);
+        console.error('❌ OVERLAY: Failed to save response:', error);
     }
 }
 
 // Step 3: Show export dialog when all questions completed
 async function showExportDialog() {
-    console.log('📤 OVERLAY-NEW: Showing export dialog');
+    console.log('📤 OVERLAY: Showing export dialog');
     
     // First, log what responses we have
     await logSavedResponses();
@@ -915,10 +915,10 @@ async function showExportDialog() {
 async function logSavedResponses() {
     try {
         var allResponses = await window.dataManager.getAllResponses();
-        console.log('📋 OVERLAY-NEW: Retrieved responses for export:', allResponses.length);
+        console.log('📋 OVERLAY: Retrieved responses for export:', allResponses.length);
         
         allResponses.forEach(function(response, index) {
-            console.log('📝 OVERLAY-NEW: Response ' + (index + 1) + ':', {
+            console.log('📝 OVERLAY: Response ' + (index + 1) + ':', {
                 patient: response.patientMrn,
                 question: response.questionId,
                 answer: response.rawText
@@ -927,14 +927,14 @@ async function logSavedResponses() {
         
         return allResponses;
     } catch (error) {
-        console.error('❌ OVERLAY-NEW: Failed to retrieve responses:', error);
+        console.error('❌ OVERLAY: Failed to retrieve responses:', error);
         return [];
     }
 }
 
 // Step 5: Handle CSV export
 async function handleExportCSV() {
-    console.log('📤 OVERLAY-NEW: Starting CSV export');
+    console.log('📤 OVERLAY: Starting CSV export');
     
     var responses = await logSavedResponses();
     
@@ -958,33 +958,33 @@ async function handleExportCSV() {
         var exportResult = await window.exportManager.exportWithDialog(exportSettings);
         
         if (exportResult.success) {
-            console.log('✅ OVERLAY-NEW: Export successful:', exportResult.filePath);
+            console.log('✅ OVERLAY: Export successful:', exportResult.filePath);
             alert('Export completed successfully!\nFile: ' + exportResult.filePath);
             
             // Close the overlay window after successful export
-            console.log('🔒 OVERLAY-NEW: Closing overlay window after export');
+            console.log('🔒 OVERLAY: Closing overlay window after export');
             if (window.electron && window.electron.ipcRenderer) {
                 window.electron.ipcRenderer.send('close-overlay');
             } else {
                 window.close();
             }
         } else {
-            console.error('❌ OVERLAY-NEW: Export failed:', exportResult.error);
+            console.error('❌ OVERLAY: Export failed:', exportResult.error);
             alert('Export failed: ' + exportResult.error);
         }
     } catch (error) {
-        console.error('❌ OVERLAY-NEW: Export error:', error);
+        console.error('❌ OVERLAY: Export error:', error);
         alert('Export error: ' + error.message);
     }
 }
 
 // Global error handlers
 window.addEventListener('error', function(event) {
-    console.error('❌ OVERLAY-NEW: Global error:', event.error);
+    console.error('❌ OVERLAY: Global error:', event.error);
 });
 
 window.addEventListener('unhandledrejection', function(event) {
-    console.error('❌ OVERLAY-NEW: Unhandled promise rejection:', event.reason);
+    console.error('❌ OVERLAY: Unhandled promise rejection:', event.reason);
 });
 
 // Test function to set a response manually (for testing)
@@ -994,10 +994,10 @@ function setTestResponse(text) {
         responseDisplay.textContent = '"' + text + '"';
         responseDisplay.style.color = '#4CAF50';
     }
-    console.log('🧪 OVERLAY-NEW: Test response set:', text);
+    console.log('🧪 OVERLAY: Test response set:', text);
 }
 
 // Expose for testing
 window.setTestResponse = setTestResponse;
 
-console.log('🎯 OVERLAY-NEW: Script loaded completely');
+console.log('🎯 OVERLAY: Script loaded completely');

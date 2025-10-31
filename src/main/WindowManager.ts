@@ -70,9 +70,9 @@ export class WindowManager {
     // Configure click-through behavior initially disabled
     this.setClickThrough(false);
 
-    // Load the new working overlay
-    const overlayPath = path.join(__dirname, 'overlay-new.html');
-    console.log('Loading NEW overlay from file:', overlayPath);
+    // Load the overlay
+    const overlayPath = path.join(__dirname, 'overlay.html');
+    console.log('Loading overlay from file:', overlayPath);
     this.overlayWindow.loadFile(overlayPath);
 
     // Add error handling for overlay loading

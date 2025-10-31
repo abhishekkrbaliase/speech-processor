@@ -37,7 +37,7 @@ The Speech Overlay Application is an Electron-based desktop application that pro
 
 #### Core Files:
 - **`overlay.html`** - Overlay UI structure
-- **`overlay.ts`** - Overlay logic and speech integration
+- **`overlay.js`** - Overlay logic and speech integration
 - **`LiveDisplayManager.ts`** - Real-time transcription display
 - **`renderer.ts`** - Main window renderer
 - **`index.html`** - Main application window
@@ -68,13 +68,13 @@ main.ts → WindowManager → Create Main Window → Load CSV Data
 
 ### 2. Overlay Creation
 ```
-User Action → WindowManager.createOverlayWindow() → overlay.html → overlay.ts
+User Action → WindowManager.createOverlayWindow() → overlay.html → overlay.js
 ```
 
 ### 3. Speech Recognition Flow
 ```
 Audio Input → AudioCaptureHandler → GoogleSpeechStreamingManager → 
-Live Transcription → overlay.ts → Display Results
+Live Transcription → overlay.js → Display Results
 ```
 
 ### 4. Questionnaire Flow
@@ -116,7 +116,7 @@ src/
 │   └── *Parser.ts          # Data parsing utilities
 ├── renderer/               # Renderer process (Browser/UI)
 │   ├── overlay.html        # Overlay UI
-│   ├── overlay.ts          # Overlay logic
+│   ├── overlay.js          # Overlay logic
 │   ├── index.html          # Main window UI
 │   ├── renderer.ts         # Main window logic
 │   └── LiveDisplayManager.ts # Live transcription display

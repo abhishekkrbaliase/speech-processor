@@ -20,7 +20,7 @@ function copyRendererFiles() {
     console.log(`Copied ${file} to dist/`);
   });
 
-  // Copy all JS files (like overlay-new.js)
+  // Copy all JS files (like overlay.js)
   const jsFiles = fs.readdirSync(srcDir).filter(file => file.endsWith('.js'));
   jsFiles.forEach(file => {
     const srcPath = path.join(srcDir, file);
