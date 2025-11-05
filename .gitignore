@@ -17,12 +17,16 @@ examples/
 .env.test.local
 .env.production.local
 
-# Google Cloud credentials
+# Google Cloud credentials (SENSITIVE - DO NOT COMMIT)
 google-credentials.json
-*.json
-!package*.json
-!tsconfig*.json
-!jest.config.js
+
+# Configuration files with sensitive data
+config.json
+
+# Generated icons (can be regenerated)
+build-resources/icon.png
+build-resources/icon.ico
+build-resources/icon.icns
 
 # IDE files
 .vscode/
@@ -50,3 +54,8 @@ coverage/
 # Electron
 app/
 out/
+
+# Test files and temporary data
+test-*.js
+*.test.js
+tests/

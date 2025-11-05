@@ -1,0 +1,9 @@
+{
+  "googleSpeech": {
+    "keyFilename": "./google-credentials.json"
+  },
+  "audio": {
+    "sampleRate": 16000,
+    "channels": 1
+  }
+}

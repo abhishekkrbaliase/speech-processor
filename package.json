@@ -24,6 +24,14 @@
     "build:standalone": "node scripts/build-standalone.js",
     "build:standalone:mac": "node scripts/build-standalone.js mac",
     "build:standalone:win": "node scripts/build-standalone.js win",
+    "package": "node scripts/package-app.js",
+    "package:mac": "node scripts/package-app.js mac",
+    "package:win": "node scripts/package-app.js win",
+    "package:all": "node scripts/package-app.js all",
+    "generate:icons": "node scripts/generate-icons.js",
+    "setup:production": "node scripts/setup-production.js",
+    "setup:development": "node scripts/setup-development.js",
+    "package:summary": "node scripts/package-summary.js",
     "test:app": "node test-application.js",
     "test:integration": "npm run build && npm run test:app",
     "clean": "rm -rf dist build",
@@ -45,8 +53,8 @@
     "test:transcription": "node src/demo/run-transcription-test.js"
   },
   "build": {
-    "appId": "com.speechoverlay.app",
-    "productName": "Speech Overlay App",
+    "appId": "com.speechprocessor.app",
+    "productName": "Speech Processor",
     "directories": {
       "output": "release",
       "buildResources": "build-resources"
@@ -54,17 +62,17 @@
     "files": [
       "dist/**/*",
       "package.json",
-      "config-template.json",
-      "README-SETUP.md"
+      "google-credentials.json",
+      "config.json"
     ],
     "extraResources": [
       {
-        "from": "config-template.json",
-        "to": "config-template.json"
+        "from": "google-credentials.json",
+        "to": "google-credentials.json"
       },
       {
-        "from": "README-SETUP.md",
-        "to": "README-SETUP.md"
+        "from": "config.json",
+        "to": "config.json"
       }
     ],
     "mac": {
@@ -74,21 +82,17 @@
         {
           "target": "dmg",
           "arch": [
-            "x64",
-            "arm64"
+            "x64"
           ]
         },
         {
           "target": "zip",
           "arch": [
-            "x64",
-            "arm64"
+            "x64"
           ]
         }
       ],
-      "entitlements": "build-resources/entitlements.mac.plist",
-      "entitlementsInherit": "build-resources/entitlements.mac.plist",
-      "hardenedRuntime": true,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false
     },
     "win": {
@@ -107,7 +111,6 @@
           ]
         }
       ],
-      "publisherName": "Speech Overlay App Team",
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
@@ -115,13 +118,12 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Speech Overlay App",
+      "shortcutName": "Speech Processor",
       "include": "build-resources/installer.nsh"
     },
     "dmg": {
-      "title": "Speech Overlay App ${version}",
+      "title": "Speech Processor ${version}",
       "icon": "build-resources/icon.icns",
-      "background": "build-resources/dmg-background.png",
       "contents": [
         {
           "x": 130,
@@ -139,7 +141,10 @@
         "height": 380
       }
     },
-    "publish": null
+    "publish": null,
+    "extraMetadata": {
+      "main": "dist/main.js"
+    }
   },
   "keywords": [
     "electron",

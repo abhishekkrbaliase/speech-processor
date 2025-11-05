@@ -104,7 +104,34 @@ class SpeechOverlayApp {
   private loadGoogleSpeechConfig(): GoogleSpeechConfig {
     const configManager = ConfigManager.getInstance();
     
-    // Validate configuration
+    // In production, try to load from bundled resources first
+    if (app.isPackaged) {
+      try {
+        const resourcesPath = process.resourcesPath;
+        const bundledConfigPath = path.join(resourcesPath, 'config.json');
+        const bundledCredentialsPath = path.join(resourcesPath, 'google-credentials.json');
+        
+        // Check if bundled config exists
+        const fs = require('fs');
+        if (fs.existsSync(bundledConfigPath) && fs.existsSync(bundledCredentialsPath)) {
+          console.log('📦 Using bundled configuration and credentials');
+          
+          // Load bundled config
+          const bundledConfig = JSON.parse(fs.readFileSync(bundledConfigPath, 'utf8'));
+          
+          // Update the keyFilename to point to bundled credentials
+          if (bundledConfig.googleSpeech) {
+            bundledConfig.googleSpeech.keyFilename = bundledCredentialsPath;
+          }
+          
+          return bundledConfig.googleSpeech || {};
+        }
+      } catch (error) {
+        console.warn('Could not load bundled configuration:', error);
+      }
+    }
+    
+    // Fallback to regular configuration loading
     const validation = configManager.validateConfig();
     if (!validation.valid) {
       console.error('Configuration Error:', validation.message);
@@ -190,8 +217,10 @@ class SpeechOverlayApp {
     // Always load from built files for now
     this.mainWindow.loadFile(path.join(__dirname, 'index.html'));
     
-    // Open dev tools for testing
-    this.mainWindow.webContents.openDevTools();
+    // Only open dev tools in development
+    if (process.env.NODE_ENV === 'development') {
+      this.mainWindow.webContents.openDevTools();
+    }
 
     // Show window when ready
     this.mainWindow.once('ready-to-show', () => {

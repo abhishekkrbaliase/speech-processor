@@ -1,13 +1,6 @@
-; Custom NSIS installer script for Speech Overlay App
-
-; Create config template in user directory
-Section "ConfigTemplate"
-  SetOutPath "$APPDATA\Speech Overlay App"
-  File "${BUILD_RESOURCES_DIR}\..\config-template.json"
-  File "${BUILD_RESOURCES_DIR}\..\README-SETUP.md"
-SectionEnd
+; Custom NSIS installer script for Speech Processor
 
 ; Create desktop shortcut with custom icon
 Section "DesktopShortcut"
-  CreateShortCut "$DESKTOP\Speech Overlay App.lnk" "$INSTDIR\Speech Overlay App.exe" "" "$INSTDIR\Speech Overlay App.exe" 0
+  CreateShortCut "$DESKTOP\Speech Processor.lnk" "$INSTDIR\Speech Processor.exe" "" "$INSTDIR\Speech Processor.exe" 0
 SectionEnd

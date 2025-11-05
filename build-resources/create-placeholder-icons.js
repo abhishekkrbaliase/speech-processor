@@ -8,15 +8,53 @@
 const fs = require('fs');
 const path = require('path');
 
-// Simple SVG icon as placeholder
+// Professional SVG icon for Speech Processor
 const svgIcon = `<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#2196F3"/>
-  <circle cx="256" cy="200" r="80" fill="white"/>
-  <rect x="176" y="280" width="160" height="120" rx="20" fill="white"/>
-  <circle cx="220" cy="320" r="8" fill="#2196F3"/>
-  <circle cx="256" cy="320" r="8" fill="#2196F3"/>
-  <circle cx="292" cy="320" r="8" fill="#2196F3"/>
-  <text x="256" y="450" text-anchor="middle" fill="white" font-family="Arial" font-size="24" font-weight="bold">SPEECH</text>
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="mic" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F0F0F0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="url(#bg)"/>
+  
+  <!-- Microphone body -->
+  <rect x="216" y="120" width="80" height="140" rx="40" fill="url(#mic)" stroke="#357ABD" stroke-width="4"/>
+  
+  <!-- Microphone grille -->
+  <line x1="236" y1="140" x2="276" y2="140" stroke="#357ABD" stroke-width="3" stroke-linecap="round"/>
+  <line x1="236" y1="160" x2="276" y2="160" stroke="#357ABD" stroke-width="3" stroke-linecap="round"/>
+  <line x1="236" y1="180" x2="276" y2="180" stroke="#357ABD" stroke-width="3" stroke-linecap="round"/>
+  <line x1="236" y1="200" x2="276" y2="200" stroke="#357ABD" stroke-width="3" stroke-linecap="round"/>
+  <line x1="236" y1="220" x2="276" y2="220" stroke="#357ABD" stroke-width="3" stroke-linecap="round"/>
+  <line x1="236" y1="240" x2="276" y2="240" stroke="#357ABD" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Microphone stand -->
+  <rect x="248" y="260" width="16" height="60" fill="url(#mic)" stroke="#357ABD" stroke-width="2"/>
+  <rect x="226" y="320" width="60" height="16" rx="8" fill="url(#mic)" stroke="#357ABD" stroke-width="2"/>
+  
+  <!-- Sound waves -->
+  <path d="M 320 180 Q 340 190 320 200" stroke="#FFFFFF" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 340 160 Q 370 180 340 200" stroke="#FFFFFF" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 360 140 Q 400 180 360 220" stroke="#FFFFFF" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.4"/>
+  
+  <!-- Processing indicator -->
+  <circle cx="256" cy="400" r="8" fill="#FFFFFF" opacity="0.9">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="276" cy="400" r="6" fill="#FFFFFF" opacity="0.7">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" begin="0.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="236" cy="400" r="6" fill="#FFFFFF" opacity="0.7">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="1.5s" begin="0.4s" repeatCount="indefinite"/>
+  </circle>
 </svg>`;
 
 console.log('Creating placeholder icons...');
