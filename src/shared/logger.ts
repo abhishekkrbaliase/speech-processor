@@ -24,9 +24,20 @@ export class FileLogger {
   private maxFiles: number = 5;
 
   constructor(logFile?: string, logLevel: LogLevel = LogLevel.INFO) {
-    // Default log file location
-    const defaultLogDir = path.join(process.cwd(), 'logs');
-    this.logFile = logFile || path.join(defaultLogDir, `speech-overlay-${new Date().toISOString().split('T')[0]}.log`);
+    // Default log file location - use a safe directory
+    let defaultLogDir: string;
+    
+    try {
+      // Try to use Electron's app.getPath('userData') if available
+      const { app } = require('electron');
+      defaultLogDir = path.join(app.getPath('userData'), 'logs');
+    } catch (error) {
+      // Fallback to OS temp directory if Electron is not available
+      const os = require('os');
+      defaultLogDir = path.join(os.tmpdir(), 'speech-processor-logs');
+    }
+    
+    this.logFile = logFile || path.join(defaultLogDir, `speech-processor-${new Date().toISOString().split('T')[0]}.log`);
     this.logLevel = logLevel;
 
     // Ensure log directory exists
@@ -34,9 +45,16 @@ export class FileLogger {
   }
 
   private ensureLogDirectory(): void {
-    const logDir = path.dirname(this.logFile);
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
+    try {
+      const logDir = path.dirname(this.logFile);
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+    } catch (error) {
+      // If we can't create the log directory, fall back to console logging only
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn('Could not create log directory, falling back to console logging:', errorMessage);
+      this.logFile = ''; // Disable file logging
     }
   }
 
@@ -63,6 +81,11 @@ export class FileLogger {
 
   private writeToFile(entry: LogEntry): void {
     try {
+      // Only write to file if file logging is enabled
+      if (!this.logFile) {
+        return; // File logging disabled
+      }
+
       const formattedEntry = this.formatLogEntry(entry) + '\n';
 
       // Check file size and rotate if necessary
@@ -76,6 +99,8 @@ export class FileLogger {
       fs.appendFileSync(this.logFile, formattedEntry);
     } catch (error) {
       console.error('Failed to write to log file:', error);
+      // Disable file logging if it fails
+      this.logFile = '';
     }
   }
 

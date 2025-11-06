@@ -154,6 +154,9 @@ class SpeechOverlayApp {
   }
 
   private initializeApp(): void {
+    // Set the app name for macOS menu bar
+    app.setName('Speech Processor');
+    
     // Handle app ready event
     app.whenReady().then(() => {
       this.createMainWindow();
