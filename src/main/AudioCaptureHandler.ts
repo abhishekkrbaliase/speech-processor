@@ -214,20 +214,40 @@ export class CrossPlatformAudioCaptureHandler extends EventEmitter implements Au
    * Check microphone permissions (platform-specific)
    */
   private async checkMicrophonePermissions(): Promise<void> {
-    // This is a simplified permission check
-    // In a real implementation, you'd use platform-specific APIs
-    
     if (process.platform === 'darwin') {
-      // On macOS, we could check permissions using system APIs
-      // For now, we'll assume permissions are granted
-      console.log('Checking macOS microphone permissions...');
+      // On macOS, request microphone access using Electron's systemPreferences
+      const { systemPreferences } = require('electron');
+      
+      console.log('🎤 Checking macOS microphone permissions...');
+      
+      // Check current permission status
+      const status = systemPreferences.getMediaAccessStatus('microphone');
+      console.log('   Current microphone permission status:', status);
+      
+      if (status === 'not-determined') {
+        // Permission not yet requested, ask for it
+        console.log('   Requesting microphone permission...');
+        const granted = await systemPreferences.askForMediaAccess('microphone');
+        
+        if (!granted) {
+          throw new Error('Microphone permission denied. Please grant microphone access in System Settings > Privacy & Security > Microphone');
+        }
+        
+        console.log('✅ Microphone permission granted');
+      } else if (status === 'denied') {
+        throw new Error('Microphone permission denied. Please enable microphone access in System Settings > Privacy & Security > Microphone');
+      } else if (status === 'restricted') {
+        throw new Error('Microphone access is restricted by system policy');
+      } else {
+        console.log('✅ Microphone permission already granted');
+      }
     } else if (process.platform === 'win32') {
-      // On Windows, we could check permissions using Windows APIs
-      console.log('Checking Windows microphone permissions...');
+      // On Windows, permissions are handled at the OS level
+      console.log('🎤 Windows microphone permissions (handled by OS)');
+    } else {
+      // Linux and other platforms
+      console.log('🎤 Linux microphone permissions (handled by OS)');
     }
-
-    // Simulate permission check
-    return Promise.resolve();
   }
 
   /**

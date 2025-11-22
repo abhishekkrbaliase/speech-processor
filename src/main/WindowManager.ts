@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, app } from 'electron';
 import * as path from 'path';
 import { OverlayPosition } from '../shared/types';
 
@@ -41,7 +41,13 @@ export class WindowManager {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
-        preload: path.join(__dirname, 'preload.js'),
+        preload: (() => {
+          const preloadPath = path.join(__dirname, 'preload.js');
+          console.log('🔧 OVERLAY PRELOAD PATH:', preloadPath);
+          console.log('🔧 __dirname:', __dirname);
+          console.log('🔧 app.isPackaged:', app.isPackaged);
+          return preloadPath;
+        })(),
         sandbox: false,
         backgroundThrottling: false // Prevent throttling when not focused
       },

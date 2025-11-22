@@ -103,35 +103,41 @@ class SpeechOverlayApp {
    */
   private loadGoogleSpeechConfig(): GoogleSpeechConfig {
     const configManager = ConfigManager.getInstance();
+    const fs = require('fs');
     
     // In production, try to load from bundled resources first
     if (app.isPackaged) {
       try {
         const resourcesPath = process.resourcesPath;
-        const bundledConfigPath = path.join(resourcesPath, 'config.json');
         const bundledCredentialsPath = path.join(resourcesPath, 'google-credentials.json');
         
-        // Check if bundled config exists
-        const fs = require('fs');
-        if (fs.existsSync(bundledConfigPath) && fs.existsSync(bundledCredentialsPath)) {
-          console.log('📦 Using bundled configuration and credentials');
+        console.log('📦 Packaged app detected, checking for bundled credentials');
+        console.log('   Resources path:', resourcesPath);
+        console.log('   Credentials path:', bundledCredentialsPath);
+        
+        // Check if bundled credentials exist
+        if (fs.existsSync(bundledCredentialsPath)) {
+          console.log('✅ Found bundled credentials, using them directly');
           
-          // Load bundled config
-          const bundledConfig = JSON.parse(fs.readFileSync(bundledConfigPath, 'utf8'));
+          // CRITICAL: Set environment variable for Google Cloud SDK
+          // This ensures the Google Speech client can find the credentials
+          process.env.GOOGLE_APPLICATION_CREDENTIALS = bundledCredentialsPath;
+          console.log('✅ Set GOOGLE_APPLICATION_CREDENTIALS:', bundledCredentialsPath);
           
-          // Update the keyFilename to point to bundled credentials
-          if (bundledConfig.googleSpeech) {
-            bundledConfig.googleSpeech.keyFilename = bundledCredentialsPath;
-          }
-          
-          return bundledConfig.googleSpeech || {};
+          // Return config pointing to bundled credentials
+          return {
+            keyFilename: bundledCredentialsPath
+          };
+        } else {
+          console.warn('⚠️ Bundled credentials not found at:', bundledCredentialsPath);
         }
       } catch (error) {
-        console.warn('Could not load bundled configuration:', error);
+        console.error('❌ Error loading bundled configuration:', error);
       }
     }
     
     // Fallback to regular configuration loading
+    console.log('📋 Loading configuration from ConfigManager');
     const validation = configManager.validateConfig();
     if (!validation.valid) {
       console.error('Configuration Error:', validation.message);
@@ -158,9 +164,43 @@ class SpeechOverlayApp {
     app.setName('Speech Processor');
     
     // Handle app ready event
-    app.whenReady().then(() => {
+    app.whenReady().then(async () => {
       this.createMainWindow();
       this.setupIpcHandlers();
+      
+      // Request microphone permission early (macOS)
+      if (process.platform === 'darwin') {
+        try {
+          const { systemPreferences } = require('electron');
+          console.log('🎤 Requesting microphone permission...');
+          const status = systemPreferences.getMediaAccessStatus('microphone');
+          
+          if (status === 'not-determined') {
+            const granted = await systemPreferences.askForMediaAccess('microphone');
+            if (granted) {
+              console.log('✅ Microphone permission granted');
+            } else {
+              console.warn('⚠️ Microphone permission denied - transcription will not work');
+            }
+          } else if (status === 'granted') {
+            console.log('✅ Microphone permission already granted');
+          } else {
+            console.warn('⚠️ Microphone permission status:', status);
+          }
+        } catch (error) {
+          console.error('❌ Error requesting microphone permission:', error);
+        }
+      }
+      
+      // Initialize Google Speech-to-Text service automatically
+      try {
+        console.log('🎤 Auto-initializing Google Speech-to-Text service...');
+        await this.speechManager.initializeService();
+        console.log('✅ Google Speech-to-Text service initialized successfully');
+      } catch (error) {
+        console.error('❌ Failed to auto-initialize Google Speech-to-Text:', error);
+        console.error('   The app will continue, but transcription may not work until manually initialized');
+      }
     });
 
     // Handle window closed events

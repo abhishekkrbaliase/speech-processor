@@ -55,6 +55,7 @@
   "build": {
     "appId": "com.speechprocessor.app",
     "productName": "Speech Processor",
+    "afterPack": "./scripts/afterPack.js",
     "directories": {
       "output": "release",
       "buildResources": "build-resources"
@@ -64,6 +65,9 @@
       "package.json",
       "google-credentials.json",
       "config.json"
+    ],
+    "asarUnpack": [
+      "node_modules/@google-cloud/**/*"
     ],
     "extraResources": [
       {
@@ -92,8 +96,14 @@
           ]
         }
       ],
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "identity": null,
+      "entitlements": "build-resources/entitlements.mac.plist",
+      "entitlementsInherit": "build-resources/entitlements.mac.inherit.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Speech Processor needs access to your microphone to transcribe speech for questionnaire responses."
+      }
     },
     "win": {
       "icon": "build-resources/icon.ico",
@@ -178,9 +188,6 @@
   },
   "dependencies": {
     "@google-cloud/speech": "^7.2.0",
-    "@tensorflow-models/speech-commands": "^0.5.4",
-    "@tensorflow/tfjs": "^4.22.0",
-    "@xenova/transformers": "^2.17.2",
     "node-record-lpcm16": "^1.0.1"
   }
 }

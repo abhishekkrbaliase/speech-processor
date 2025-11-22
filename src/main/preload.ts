@@ -3,6 +3,12 @@ import { exposeDataManagerAPI } from '../preload/dataManagerAPI';
 import { exposeQuestionnaireAPI } from '../preload/questionnaireAPI';
 import { exposeExportAPI } from '../preload/exportAPI';
 
+// Log that preload script is executing
+console.log('🔧 PRELOAD: Script starting...', new Date().toISOString());
+console.log('🔧 PRELOAD: Process type:', process.type);
+console.log('🔧 PRELOAD: Node version:', process.versions.node);
+console.log('🔧 PRELOAD: Electron version:', process.versions.electron);
+
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -104,5 +110,9 @@ exposeQuestionnaireAPI();
 
 // Expose Export API
 exposeExportAPI();
+
+// Log that preload script completed successfully
+console.log('✅ PRELOAD: Script completed successfully');
+console.log('✅ PRELOAD: electronAPI exposed to renderer');
 
 // Type definitions for the exposed API are handled by TypeScript inference
